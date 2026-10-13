@@ -1,0 +1,23 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# PyInstaller outputs
+build/
+dist/
+*.spec
+
+# User save data - never commit saves
+*.gci
+*.raw
+*.gcp
+*.ps2
+*.psu
+*.sav
+*.bak
+*.bak-*
+*.bin
+!assets/*.z

@@ -28,6 +28,20 @@ A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion
 
 Only these five editions are selectable. Other possible IDs, including `GOWJ69`, are deliberately rejected pending confirmation of the correct save layout. Recognizing a retail game ID does **not** establish save-format compatibility.
 
+## Download
+
+**[Download the Windows EXE from GitHub Releases](https://github.com/ChatProductions/NFSMW-CrossSave/releases/latest)** once the Windows build succeeds.
+
+No Python installation is required for the standalone executable. For source use or local builds, see the instructions below. The [Actions build page](https://github.com/ChatProductions/NFSMW-CrossSave/actions) also provides downloadable Windows build artifacts after successful runs.
+
+### Screenshots
+
+![GameCube to PC](docs/GUI_GameCube_to_PC.png)
+
+![PC to GameCube](docs/GUI_PC_to_GameCube.png)
+
+![GameCube to GameCube region converter](docs/GUI_GameCube_to_GameCube.png)
+
 ## Running on Windows
 
 1. Extract the ZIP to a folder.
