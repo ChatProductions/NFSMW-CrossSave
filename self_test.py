@@ -1,4 +1,4 @@
-"""Regression tests for v1.0 (includes historical v0.2 repair regression). Optional fixtures are not distributed."""
+"""Regression tests for v0.5 (includes historical v0.2 repair regression). Optional fixtures are not distributed."""
 from __future__ import annotations
 import sys
 import struct

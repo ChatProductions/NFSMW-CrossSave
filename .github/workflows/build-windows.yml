@@ -29,39 +29,51 @@ jobs:
       - name: Build portable Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v1.0 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
-          if (!(Test-Path "dist/NFSMW-CrossSave-v1.0.exe")) { throw "EXE not produced" }
+          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.5 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
+          if (!(Test-Path "dist/NFSMW-CrossSave-v0.5.exe")) { throw "EXE not produced" }
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NFSMW-CrossSave-v1.0-Windows
-          path: dist/NFSMW-CrossSave-v1.0.exe
+          name: NFSMW-CrossSave-v0.5-Windows
+          path: dist/NFSMW-CrossSave-v0.5.exe
           if-no-files-found: error
 
-      - name: Check if v1.0.0 release already exists
+      - name: Check if v0.5.0 release already exists
         id: release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $releaseList = gh release list --repo "$env:GITHUB_REPOSITORY" --json tagName | ConvertFrom-Json
-          if ($releaseList | Where-Object { $_.tagName -eq 'v1.0.0' }) {
+          if ($releaseList | Where-Object { $_.tagName -eq 'v0.5.0' }) {
             "exists=true" >> $env:GITHUB_OUTPUT
           } else {
             "exists=false" >> $env:GITHUB_OUTPUT
           }
 
-      - name: Publish first successful Windows build as v1.0.0
+      - name: Publish first successful Windows build as v0.5.0
         if: steps.release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: NFSMW CrossSave v1.0.0
+          tag_name: v0.5.0
+          name: NFSMW CrossSave v0.5.0
           body: |
-            PC ↔ GameCube (USA) conversion has been tested in-game with selected career saves.
-            GameCube cross-region conversions are experimental and require real regional testing.
+            We tested PC ↔ GameCube (USA) conversion in-game with real career saves.
+            Other GameCube editions await user testing and feedback.
             Back up your save files and Dolphin memory card before use.
             Windows portable executable: no Python installation required.
-          files: dist/NFSMW-CrossSave-v1.0.exe
+          files: dist/NFSMW-CrossSave-v0.5.exe
           fail_on_unmatched_files: true
+
+      - name: Retire superseded v1.0.0 release after publishing v0.5.0
+        if: steps.release.outputs.exists == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $old = gh release list --repo "$env:GITHUB_REPOSITORY" --json tagName | ConvertFrom-Json
+          if ($old | Where-Object { $_.tagName -eq 'v1.0.0' }) {
+            gh release delete v1.0.0 --repo "$env:GITHUB_REPOSITORY" --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) { throw "Could not retire old v1.0.0 release" }
+          }

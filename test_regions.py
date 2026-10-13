@@ -1,4 +1,4 @@
-"""v1.0 edition conversion tests. These prove structural integrity, NOT regional game acceptance.
+"""v0.5 edition conversion tests. These prove structural integrity, NOT regional game acceptance.
 
 Optional command-line arguments:
     python test_regions.py /path/to/USA.gci /path/to/PCprofile

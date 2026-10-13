@@ -1,10 +1,10 @@
-# NFSMW CrossSave v1.0
+# NFSMW CrossSave v0.5
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC and GameCube, with an experimental GameCube regional-edition converter.
 
-**This is a v1.0 feature release, not a claim that every regional conversion has been validated in-game.** Only the USA GameCube (`GOWE69`) and PC conversions have been tested in-game using supplied career saves. PAL/Japan conversions pass structural checks and require genuine regional saves and Dolphin gameplay tests.
+**Compatibility status:** We tested PC ↔ USA GameCube (`GOWE69`) conversions in-game using real career saves. Other GameCube editions are awaiting user testing and feedback. The converter passes offline structural and checksum checks for the listed editions, but we have not yet verified their in-game compatibility.
 
-## What's new in v1.0
+## What's included in v0.5
 
 - Removed the legacy **Repair old v0.2 GCI** button.
 - Added a third mode: **GameCube → GameCube** for changing the target edition.
@@ -21,20 +21,18 @@ A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion
 | Edition | Game ID | Status |
 |---|---|---|
 | USA / English | `GOWE69` | **In-game tested** with PC ↔ GC career saves |
-| PAL / English | `GOWP69` | **Experimental** |
-| PAL / German | `GOWD69` | **Experimental** |
-| PAL / French | `GOWF69` | **Experimental** |
-| Japan / Japanese | `GOWJ13` | **Experimental** |
+| PAL / English | `GOWP69` | **Awaiting user testing** |
+| PAL / German | `GOWD69` | **Awaiting user testing** |
+| PAL / French | `GOWF69` | **Awaiting user testing** |
+| Japan / Japanese | `GOWJ13` | **Awaiting user testing** |
 
-Only these five editions are selectable. Other possible IDs, including `GOWJ69`, are deliberately rejected pending confirmation of the correct save layout. Recognizing a retail game ID does **not** establish save-format compatibility.
+These five editions are currently selectable. Dolphin also lists **`GOWJ69`**, another **Japanese** GameCube identifier alongside `GOWJ13`. We have not examined a genuine `GOWJ69` save, so the converter does not yet support that ID. **This does not mean it is incompatible.** Support can be reconsidered after users provide matching save samples or compatibility reports.
 
 ## Download
 
-**[Download the Windows EXE from GitHub Releases](https://github.com/ChatProductions/NFSMW-CrossSave/releases/latest)** once the Windows build succeeds.
+Download the standalone Windows application from **[GitHub Releases](https://github.com/ChatProductions/NFSMW-CrossSave/releases/latest)**. Under **Assets**, select `NFSMW-CrossSave-v0.5.exe`. You do not need Python to run it.
 
-No Python installation is required for the standalone executable. For source use or local builds, see the instructions below. The [Actions build page](https://github.com/ChatProductions/NFSMW-CrossSave/actions) also provides downloadable Windows build artifacts after successful runs.
-
-If no release is visible yet, open **Actions → Build and release Windows EXE → Run workflow → Run workflow**. The successful run creates the first v1.0.0 release and also provides a downloadable EXE artifact. If GitHub asks you to enable workflows for this new repository, enable them first.
+For development builds, see the [GitHub Actions page](https://github.com/ChatProductions/NFSMW-CrossSave/actions).
 
 ### Screenshots
 
@@ -44,15 +42,16 @@ If no release is visible yet, open **Actions → Build and release Windows EXE �
 
 ![GameCube to GameCube region converter](docs/GUI_GameCube_to_GameCube.png)
 
-## Running on Windows
+## Using the Windows EXE
 
-1. Extract the ZIP to a folder.
-2. Install **Python 3.10 or newer** if it is not installed.
-3. Double-click **`Start Converter.bat`** to open the GUI.
-4. Choose a conversion mode, select the input save, and optionally choose an output folder.
-5. For GameCube output, select the destination edition and optionally enter an internal profile name.
-6. Click **Inspect save** and then **Convert and verify**.
-7. Back up your Dolphin memory card before importing the result. Test a regional conversion on a copy of the card first.
+1. Open the [v0.5.0 release](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0) and download `NFSMW-CrossSave-v0.5.exe` under **Assets**.
+2. Run the downloaded `.exe` on Windows. No Python installation or source-code ZIP is needed.
+3. Choose **GameCube → PC**, **PC → GameCube**, or **GameCube → GameCube**.
+4. Select the input save. For GameCube output, select the destination edition and optionally set a different internal profile name.
+5. Click **Inspect save**, then **Convert and verify**.
+6. Back up your saves and Dolphin memory card before importing converted saves. Test regional conversions on a copy of your memory card.
+
+Windows may show a SmartScreen warning because this independent application is not code-signed. Only run the executable if you trust its source.
 
 ### The three modes
 
@@ -62,21 +61,22 @@ If no release is visible yet, open **Actions → Build and release Windows EXE �
 
 **GameCube → GameCube:** Select the source `.gci`, then choose the target edition. The internal profile name is **preserved by default** across regions. To create another save for the *same* edition, supply a different internal profile name. A region-only conversion leaves the embedded MC02 career block unchanged; it changes the surrounding GCI metadata, not the in-game language.
 
-### EXE build
+## Building the program
 
-On Windows, double-click **`Build Windows EXE.bat`** (or run `Build Windows EXE.ps1`). The script installs PyInstaller and builds:
+These steps are for people who want to run the source code or compile their own Windows executable.
 
-`dist\NFSMW-CrossSave-v1.0.exe`
+1. Install **Python 3.10 or newer** on Windows.
+2. Clone this repository or download and extract its source ZIP.
+3. To run from source, double-click `Start Converter.bat`.
+4. To compile a standalone EXE, double-click `Build Windows EXE.bat` (or run `Build Windows EXE.ps1`). The build script installs PyInstaller and produces `dist\NFSMW-CrossSave-v0.5.exe`.
 
-The EXE is a portable standalone Windows application and does not require Python on the destination computer. **The ZIP contains source code and build scripts, not a precompiled EXE.**
-
-You can also copy `.github-workflow-example.yml` to `.github/workflows/build-windows.yml` in your GitHub repository and run its Windows workflow to obtain an EXE artifact.
+GitHub Actions also builds the Windows executable automatically from the repository source.
 
 ## Validation and limitations
 
-- PC ↔ USA GameCube: confirmed by user in both games on specific career saves; other saves may vary.
-- Five GameCube game IDs: wrapper structure and checksums tested offline; **no PAL or Japanese in-game validation**.
-- GameCube → GameCube: verified that a region-only transfer preserves the complete embedded career block and that the new GCI passes structural checks. Whether each regional game loads it remains unknown.
+- PC ↔ USA GameCube: We tested both directions in-game using real career saves; other saves may vary.
+- Five GameCube game IDs: wrapper structure and checksums tested offline; **PAL and Japanese editions await user testing and feedback**.
+- GameCube → GameCube: verified that a region-only transfer preserves the complete embedded career block and that the new GCI passes structural checks. We are awaiting user reports to verify whether each regional game loads the converted save.
 - Japanese-language profile names with non-ASCII characters are **not supported**. The program will reject unsupported name encodings instead of silently corrupting them.
 - Expects an exported `.gci`, not a raw `.raw` memory card image, `.sav`, PS2 or Xbox save.
 - The built-in GameCube banner/icon is a generic replacement. Regional banner and localization-specific metadata may differ from original regional saves.
