@@ -34,6 +34,8 @@ Only these five editions are selectable. Other possible IDs, including `GOWJ69`,
 
 No Python installation is required for the standalone executable. For source use or local builds, see the instructions below. The [Actions build page](https://github.com/ChatProductions/NFSMW-CrossSave/actions) also provides downloadable Windows build artifacts after successful runs.
 
+If no release is visible yet, open **Actions → Build and release Windows EXE → Run workflow → Run workflow**. The successful run creates the first v1.0.0 release and also provides a downloadable EXE artifact. If GitHub asks you to enable workflows for this new repository, enable them first.
+
 ### Screenshots
 
 ![GameCube to PC](docs/GUI_GameCube_to_PC.png)
