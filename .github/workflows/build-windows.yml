@@ -66,6 +66,14 @@ jobs:
           files: dist/NFSMW-CrossSave-v0.5.exe
           fail_on_unmatched_files: true
 
+      - name: Refresh v0.5.0 release instructions
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit v0.5.0 --repo "$env:GITHUB_REPOSITORY" --notes-file RELEASE_NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw "Could not update release instructions" }
+
       - name: Retire superseded v1.0.0 release after publishing v0.5.0
         if: steps.release.outputs.exists == 'false'
         shell: pwsh
