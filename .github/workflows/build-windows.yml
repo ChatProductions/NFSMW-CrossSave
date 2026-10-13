@@ -53,7 +53,7 @@ jobs:
           }
 
       - name: Publish first successful Windows build as v1.0.0
-        if: github.event_name == 'push' && steps.release.outputs.exists == 'false'
+        if: steps.release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.0
