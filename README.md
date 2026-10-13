@@ -6,7 +6,6 @@ A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion
 
 ## What's included in v0.5
 
-- Removed the legacy **Repair old v0.2 GCI** button.
 - Added a third mode: **GameCube → GameCube** for changing the target edition.
 - Automatic source GameCube game ID detection when browsing or inspecting saves.
 - GameCube edition selector for **PC → GameCube** and **GameCube → GameCube**.
@@ -49,7 +48,7 @@ For development builds, see the [GitHub Actions page](https://github.com/ChatPro
 3. Choose **GameCube → PC**, **PC → GameCube**, or **GameCube → GameCube**.
 4. Select the input save. For GameCube output, select the destination edition and optionally set a different internal profile name.
 5. Click **Inspect save**, then **Convert and verify**.
-6. Back up your saves and Dolphin memory card before importing converted saves. Test regional conversions on a copy of your memory card.
+6. Before importing, **create a ZIP archive of your original save files** and keep it somewhere safe. Also back up your complete Dolphin memory card (or GCI save folder). Test regional conversions on a copy.
 
 Windows may show a SmartScreen warning because this independent application is not code-signed. Only run the executable if you trust its source.
 
@@ -60,6 +59,43 @@ Windows may show a SmartScreen warning because this independent application is n
 **PC → GameCube:** Select the extensionless PC profile file (e.g. `Documents\NFS Most Wanted\SAVE\SAVE`), choose the target GameCube edition. By default, the internal profile is suffixed with `GC` (example `SAVE → SAVEGC`) to avoid collisions. You can supply a different name.
 
 **GameCube → GameCube:** Select the source `.gci`, then choose the target edition. The internal profile name is **preserved by default** across regions. To create another save for the *same* edition, supply a different internal profile name. A region-only conversion leaves the embedded MC02 career block unchanged; it changes the surrounding GCI metadata, not the in-game language.
+
+## Back up your original saves
+
+**Make a ZIP backup before converting or importing anything.** The converter preserves the selected input save, but importing a converted save into Dolphin can conflict with an existing one.
+
+1. Close the game in Dolphin.
+2. For a **GameCube save**, export your existing save as a `.gci` from Dolphin's Memory Card Manager, or copy the original `.gci` from your GCI Folder.
+3. For a **PC save**, copy the entire profile folder from `Documents\NFS Most Wanted\`.
+4. In Windows File Explorer, select the copied files or folders, right-click and choose **Compress to ZIP file** (or **Send to → Compressed (zipped) folder** on some versions).
+5. Keep the ZIP away from your converted files. If you use Dolphin's `.raw` memory card, also back up the entire `.raw` file.
+
+## Importing a converted save into Dolphin
+
+Check **Config → GameCube → Slot A** (or Slot B) to see whether Dolphin uses a **Memory Card** (`.raw`) or **GCI Folder**. Use the slot and region your game actually uses.
+
+### Memory Card (.raw)
+
+1. Close the running game.
+2. Open **Tools → Memory Card Manager (GC)** in Dolphin (the menu wording may vary by version).
+3. Open the correct region's `.raw` memory card under **Slot A** or **Slot B**. Create one if necessary.
+4. Click **Import…** and choose the converted `.gci`.
+5. Confirm that the save appears on the card, then launch the matching regional game.
+
+### GCI Folder
+
+1. Close the running game. In Dolphin, choose **File → Open User Folder**.
+2. Go to the matching region and slot folder:
+
+   - USA: `GC/USA/Card A/`
+   - Europe (PAL): `GC/EUR/Card A/`
+   - Japan: `GC/JAP/Card A/`
+
+   If you use Slot B, select `Card B` instead.
+3. Copy the converted `.gci` into that folder. After creating your ZIP backup, move any conflicting original save out of the active folder. Different Windows filenames can still have the same internal GameCube save identity.
+4. Launch the matching regional edition and check whether the career loads.
+
+**Do not place a `.gci` inside a `.raw` file manually.** Use Memory Card Manager to import it. For **GameCube → PC**, install the generated `PROFILE\PROFILE` folder under `Documents\NFS Most Wanted\`; Dolphin is not involved.
 
 ## Building the program
 
