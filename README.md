@@ -1,8 +1,21 @@
 # NFSMW CrossSave v0.7.5
 
-A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
+A standalone Windows GUI converter for **Need for Speed: Most Wanted (2005)** career saves across PC, GameCube, and the PS Vita port's PS2 Black Edition (SLUS-21351) format.
 
-**Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
+**Current stable release:** [v0.7.5 for Windows](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.5). No Python, Git, or separate donor saves are needed to run the EXE.
+
+### Compatibility
+
+| Conversion | Status |
+| --- | --- |
+| PC ↔ USA GameCube (`GOWE69`) | **In-game tested** |
+| **PC → PS Vita** (extensionless profile) | **In-game tested** — user confirmed |
+| **GameCube → PS Vita** (extensionless profile) | **In-game tested** — user confirmed |
+| Vita / PS2 Black Edition → PC or GameCube | Experimental, offline validation only |
+| PC / GameCube → native PS2 game file or PSU archive | Experimental, offline validation only |
+| GameCube regional edition conversion (PAL / Japanese) | Experimental, awaiting in-game tests |
+
+**Important:** The two verified Vita conversions use **Vita port profile (extensionless)**, not native `.psu` or PS2 memory-card files. The application reuses an exact original `EF` save internally as the platform template; the converted career fields come from the selected PC or GameCube save. Back up existing profiles before copying over them. In-game reports establish these tested paths, not universal compatibility for every career or game release.
 
 ## v0.7.5: Exact original EF templates integrated
 
@@ -17,23 +30,21 @@ For **PC → PS2** or **GameCube → PS2**, select **Vita port profile
 original EF template loads automatically for **all three** output formats.
 The *Advanced* override remains optional, never required.
 
-The Vita profile conversion follows the **v0.7.2 EF-template path that loaded
-in-game**. The native PS2 / PSU variants pass offline validation but still
-require separate game testing. As in v0.7.2, non-transferred history and
+**PC → PS Vita and GameCube → PS Vita (extensionless)** have both been confirmed working in-game. The integrated EF pathway preserves the conversion and template behavior of the successful v0.7.2 tests. Native PS2 / PSU variants pass offline validation but still need separate in-game testing. As in v0.7.2, non-transferred history and
 other fields can carry values inherited from EF: this is intentional, per
 request for byte-exact integration rather than a sanitized template.
 
-## v0.7.4: Donor-free extensionless Vita save output
+## v0.7.4: Historical donor-free experiment (superseded)
 
-**GameCube → Vita is donor-free by default.** No external file is required: v0.7.5 bundles the exact original EF profiles. Version 0.7.4 constructs a neutral Vita-format profile from the existing **sanitized, built-in PC platform scaffold** included with CrossSave and translates PC-only CD padding to Vita's AA padding before transferring your GameCube career. It does not redistribute or embed EF or any personal save.
+Version 0.7.4 attempted to build a Vita profile from a neutral PC scaffold, but its extensionless result was **rejected as corrupt in-game**. **Do not use v0.7.4 donor-free Vita output.** Version 0.7.5 instead embeds the exact, known-working original EF save as its automatic destination template. There is no external template to select in v0.7.5.
 
-**How to convert:** Choose **GameCube → PS2**, select your GameCube .gci file, then set **Vita port profile (extensionless)** as the output format. Leave **Optional: use an existing Vita profile as template** unchecked. Click **Convert and verify**. The generated extensionless PROFILE file is intended for Vita's save directory. Back up any existing same-named profile before copying it to the Vita.
+**How to convert in v0.7.5:** Choose **PC → PS2** or **GameCube → PS2**, select your PC profile or GameCube `.gci`, and set **Vita port profile (extensionless)**. Leave the optional template override off. Click **Convert and verify**. CrossSave automatically uses its bundled `EF` template and writes an extensionless file named for the converted career. Back up any existing same-named Vita profile before importing.
 
-**Optional compatibility comparison:** You may still check the optional Vita template control and select an original extensionless port profile, such as EF. This preserves the v0.7.2 path that was confirmed to work in-game by a user, for testing only.
+**Optional template override:** Advanced still allows a different genuine Vita save to be provided, but this is not required or recommended for the two verified extensionless output paths.
 
-**Native PS2 game file and full .psu output:** These still require genuine metadata templates. The donor-free improvement specifically targets the Vita's extensionless raw profile, not every PS2 serialization format.
+**Native PS2 game file and full `.psu` output:** Version 0.7.5 now uses the integrated `EF.psu` as the default. These formats pass offline structural checks but have not been confirmed working in-game.
 
-**Verification status:** Source fields, default game car/customization records, structural lengths, save checksums and round-trips are tested. **The new donor-free Vita output still requires an in-game test.** v0.7.2 using EF was confirmed to load successfully; that does not automatically establish that v0.7.4 without EF will load.
+**Verification status:** The experimental v0.7.4 donor-free result was reported corrupt. The exact EF-template path used in v0.7.5 is the working approach; both PC and GameCube extensionless Vita conversions have now been reported working in-game.
 
 ## v0.7.3: PS2 destination-save selector fix
 
@@ -54,9 +65,9 @@ v0.7.2 required a destination save template for PS2 output, but incorrectly disp
 - **PS2 game file:** a genuine 62,689-byte BASLUS-21351-* game file or a complete .psu export from Vita 1.3.7
 - **PS2 PSU archive:** a complete .psu export (preserves metadata and icon), not just the raw PS2 file
 
-No private save files or copyrighted PS2 console artwork are included in the application. For the Vita port's 1.3.7 PS2 importer, place native game files or .psu exports under ux0:data/nfsmw/save/ and restart the game. Existing imported profiles under the active save folder may conflict with the new name; back them up before import.
+**Historical note for v0.7.2:** Templates were not then bundled. In v0.7.5, the original `EF` and `BASLUS-21351-EF.psu` assets are included with the save owner's permission. For the Vita port's 1.3.7 PS2 importer, place native game files or `.psu` exports under `ux0:data/nfsmw/save/` and restart the game. Existing imported profiles under the active save folder may conflict with the new name; back them up before import.
 
-**GameCube → PC and GameCube regional transfers remain in place.** PS2 output remains experimental pending in-game feedback. Never overwrite your only copy of a save.
+**GameCube → PC and regional transfer modes remain in place.** Native PS2/PSU outputs remain experimental pending in-game feedback. Never overwrite your only copy of a save.
 
 ## Earlier v0.7.1 changes
 
@@ -68,24 +79,24 @@ The preceding release corrected fixed PC/PS2 padding sentinels and checksum hand
 - Four new modes in the **same original blue-and-white GUI**: **PS2 → PC**, **PC → PS2**, **PS2 → GameCube**, **GameCube → PS2**.
 - Accepts PS2 Black Edition saves from the latest Vita port (extensionless 62,669-byte profiles such as EF), native PS2 20CM files (62,689 bytes), and exported .psu memory-card archives (containing BASLUS-21351-PROFILE).
 - PS2 output formats: **Vita raw** (PROFILE), **PS2 memory-card game file** (BASLUS-21351-PROFILE), or complete **PSU archive** (.psu).
-- **Vita extensionless output is donor-free by default (v0.7.4).** Optional Vita profile template is available for comparison; PS2-native and PSU output still require user-supplied destination metadata. PSU export requires a complete .psu to preserve icon metadata.
+- **Vita extensionless output needs no external donor file (v0.7.5)** because the original `EF` template is bundled. Native PS2/PSU output likewise uses the bundled `EF.psu` by default, with optional overrides.
 - Automatic source inspection, cash editing, corruption checks, original-file preservation, and timestamped backups remain.
-- No personal save files or copyrighted PS2 icon assets are bundled.
+- Version 0.7.5 bundles the original, user-authorized `EF` and `BASLUS-21351-EF.psu` game-save templates, exactly as supplied.
 
 ### Downloads
 
-- **[Experimental v0.7.4 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.4)**: NFSMW-CrossSave-v0.7.4.exe. Native/Vita layout correction; published after the Windows Actions build passes.
+- **[Stable v0.7.5 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.5)**: NFSMW-CrossSave-v0.7.5.exe. In-game tested PC → Vita and GameCube → Vita extensionless outputs, integrated EF templates.
 - **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
 
 ### PS2 instructions
 
 1. Choose the conversion direction, such as **PS2 → PC** or **PC → PS2**.
 2. For **PS2 input**, browse to the Vita raw profile, native BASLUS-21351-* game file, or .psu export.
-3. For **PS2 output**, select the format. Vita saves are extensionless; PS2 .psu needs the original PS2 archive supplied under *Advanced*.
+3. For **PS Vita output**, choose **Vita port profile (extensionless)**. The original `EF` template is included automatically. For native PS2 or `.psu` outputs, `EF.psu` is also already integrated; use Advanced only to override.
 4. Click **Inspect save**, then **Convert and verify**. Back up the source file before importing the generated save in a game.
 5. For PC output, install the generated PROFILE\PROFILE inside Documents\NFS Most Wanted\. For GameCube output, import the generated .gci in Dolphin's matching regional memory card.
 
-**Limitations:** PS2 Black Edition uses the US SLUS-21351 save title identity. Other PS2 editions are not supported. Structural tests do not demonstrate that the game will load a converted career; verify in-game using copies.
+**Limitations:** PS2 Black Edition uses US SLUS-21351 save identity; other PS2 editions are unsupported. PC → Vita and GameCube → Vita extensionless conversions have been confirmed in-game. This does **not** establish native PS2 or PSU compatibility; test those separately on backed-up saves.
 
 ---
 
@@ -122,7 +133,7 @@ These five editions are currently selectable. Dolphin also lists **`GOWJ69`**, a
 
 ## Download
 
-Download the standalone Windows application from **[GitHub Releases](https://github.com/ChatProductions/NFSMW-CrossSave/releases/latest)**. Under **Assets**, select `NFSMW-CrossSave-v0.5.exe`. You do not need Python to run it.
+**Historical v0.5 instructions:** The current [stable download is v0.7.5](https://github.com/ChatProductions/NFSMW-CrossSave/releases/latest). The v0.5 executable remains in older releases. No Python installation is required for the standalone EXE.
 
 For development builds, see the [GitHub Actions page](https://github.com/ChatProductions/NFSMW-CrossSave/actions).
 
@@ -220,7 +231,7 @@ GitHub Actions also builds the Windows executable automatically from the reposit
 
 `python test_regions.py original_USA.gci known_good_PC`
 
-The regional suite checks all five game IDs, GC → GC → GC round-trips, PC → GC → PC conversion, preservation of native career data, and rejection of unsupported IDs/corrupt saves. **No personal saves are bundled.**
+The regional suite checks all five game IDs, GC → GC → GC round-trips, PC → GC → PC conversion, preservation of native career data, and rejection of unsupported IDs/corrupt saves. **Historical v0.5 tests used no bundled personal saves; v0.7.5 now includes the approved original EF templates.**
 
 ## References
 
