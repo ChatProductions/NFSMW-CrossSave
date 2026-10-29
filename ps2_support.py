@@ -15,6 +15,8 @@ import hashlib
 import re
 import struct
 
+from ps2_layout import transfer_fields
+
 from converter_core import (
     ConversionError, ea_crc32, parse_pc, pc_to_gc, gc_to_pc,
     _built_in_scaffold, _repair_header, _name, _valid_gc_name,
@@ -117,35 +119,54 @@ def _check_ps2_file(content: bytes) -> bytes:
                  f'PS2 header CRC mismatch at 0x{field:X}.')
     _ps2_name(_name(content))
     _check_ps2_platform_fields(content)
+    # These section markers are identical in the original SLUS-21351
+    # export and the equivalent genuine Vita save, after accounting for
+    # the 0x3C native section shift. v0.7.1 wrote them at PC offsets.
+    _require(content[0x5C01:0x5C05] == b'\x78\x56\x34\x12',
+             'PS2-native garage layout is misaligned (v0.7.1 output).')
+    _require(content[0x9D09:0x9D0D] == b'\x84\x0f\x85\x0f',
+             'PS2-native customization layout is misaligned.')
     return content
 
 
 def _from_vita(data: bytes) -> bytes:
+    """Inspect a Vita raw save using a virtual header, without treating it
+    as the shifted native PS2 layout. Use original raw bytes for conversion.
+    """
     _require(len(data) == PS2_VITA_BYTES, 'Expected 0xF4CD-byte Vita profile.')
     _require(struct.unpack_from('<4I', data, 0) ==
              (8, PS2_VITA_BYTES - 16, 0x10D, PS2_VITA_BYTES - 16)
              and data[0x10:0x20] == bytes(16),
-             'Unsupported Vita PS2 Black Edition profile header.')
+             'Unsupported Vita profile header.')
+    _require(data[0x30:0x34] == b'Game' and
+             struct.unpack_from('<I', data, 0x34)[0] == 8,
+             'Unsupported Vita gameplay version.')
     _require(hashlib.md5(data[0x30:0x4020]).digest() == data[0x20:0x30],
-             'Vita PS2 gameplay MD5 mismatch.')
+             'Vita gameplay MD5 mismatch.')
     _require(hashlib.md5(data[0x20:-16]).digest() == data[-16:],
-             'Vita PS2 profile MD5 mismatch.')
-    result = bytearray(PS2_FILE_BYTES)
-    struct.pack_into('<4I', result, 0, 0x4D433032, PS2_FILE_BYTES, 8,
-                     PS2_FILE_BYTES - 0x24)
-    struct.pack_into('<I', result, 0x1c, 0x10D)
-    struct.pack_into('<I', result, 0x20, PS2_FILE_BYTES - 0x24)
-    result[0x34:] = data[0x20:]
-    _repair_header(result, '<', True)
-    return _check_ps2_file(bytes(result))
+             'Vita profile MD5 mismatch.')
+    _require(data[0x5BC5-20:0x5BC9-20] == b'\x78\x56\x34\x12',
+             'Vita garage layout is misaligned.')
+    virtual = bytearray(PS2_FILE_BYTES)
+    struct.pack_into('<4I', virtual, 0, 0x4D433032, PS2_FILE_BYTES,
+                     8, PS2_FILE_BYTES - 0x24)
+    struct.pack_into('<I', virtual, 0x1C, 0x10D)
+    struct.pack_into('<I', virtual, 0x20, PS2_FILE_BYTES - 0x24)
+    virtual[0x34:] = data[0x20:]
+    _ps2_name(_name(virtual))
+    # Not a true native PS2 game file: only usable for inspection.
+    return bytes(virtual)
 
 
-def _to_vita(native: bytes) -> bytes:
-    result = struct.pack('<4I', 8, PS2_VITA_BYTES - 16, 0x10D,
-                         PS2_VITA_BYTES - 16) + bytes(16) + native[0x34:]
-    _require(len(result) == PS2_VITA_BYTES, 'Vita PS2 output size mismatch.')
-    _from_vita(result)
-    return result
+def _rename_vita(raw: bytearray, name: str):
+    name = _ps2_name(name)
+    raw[0x5A31-20:0x5A55-20] = name.encode('ascii').ljust(36, b'\x00')
+    p = 0x429D - 20
+    old = raw[p:p+16].split(b'\x00', 1)[0].decode('ascii', 'ignore')
+    match = re.match(r'^(MW-\d+-)', old)
+    if match:
+        case = (match.group(1) + name[:4] + 'XXX')[:12].encode('ascii')
+        raw[p:p+16] = case.ljust(13, b'\x00') + b'\xAA' * 3
 
 
 def _entries(psu: bytes):
@@ -228,21 +249,21 @@ def _rename(b: bytearray, name: str):
     match = re.match(r'^(MW-\d+-)', old)
     if match:
         case = (match.group(1) + name[:4] + 'XXX')[:12].encode('ascii')
-        b[0x429D:0x42AD] = case.ljust(13, b'\x00') + b'\xcd' * 3
+        b[0x429D:0x42AD] = case.ljust(13, b'\x00') + b'\xaa' * 3
 
 
 def ps2_to_pc(ps2: bytes, pc_template: bytes | None = None,
               cash: int | None = None, *, new_name: str | None = None) -> bytes:
-    native = parse_ps2(ps2)
+    fmt = detect_ps2_format(ps2)
+    native = parse_ps2(ps2) if fmt != 'vita' else None
     pc = bytearray(parse_pc(pc_template) if pc_template is not None
                    else _built_in_scaffold('pc'))
-    # Retain PC-only tail settings rather than importing PS2 empty slots.
-    pc_tail = bytes(pc[0xF494:0xF4D1])
-    pc[0x34:PS2_FILE_BYTES] = native[0x34:]
-    pc[0xF494:0xF4D1] = pc_tail
-    _translate_padding(pc, to_ps2=False)
+    transfer_fields(ps2 if fmt == 'vita' else native, pc,
+                    source_format='vita' if fmt == 'vita' else 'native',
+                    target_format='pc')
     if new_name is not None:
-        _rename(pc, new_name)
+        name = _valid_gc_name(new_name)
+        pc[0x5A31:0x5A55] = name.encode('ascii').ljust(36, b'\x00')
     if cash is not None:
         _require(0 <= cash <= 2_000_000_000, 'Cash out of range.')
         struct.pack_into('<I', pc, 0x4039, cash)
@@ -253,32 +274,53 @@ def ps2_to_pc(ps2: bytes, pc_template: bytes | None = None,
 def pc_to_ps2(pc_data: bytes, *, cash: int | None = None,
               new_name: str | None = None, fmt: str = 'vita',
               psu_template: bytes | None = None) -> bytes:
+    """Convert PC/Vita (unshifted) to correctly shifted PS2-native save.
+
+    A genuine destination-format save is required until all platform-only
+    fields are understood and a sanitized platform scaffold is proven
+    equivalent in-game. This avoids silent corruption from v0.7.0/0.7.1.
+    """
     pc = parse_pc(pc_data)
-    native = bytearray(pc[:PS2_FILE_BYTES])
-    struct.pack_into('<I', native, 4, PS2_FILE_BYTES)
-    struct.pack_into('<I', native, 0x0c, PS2_FILE_BYTES - 0x24)
-    struct.pack_into('<I', native, 0x20, PS2_FILE_BYTES - 0x24)
-    if new_name is not None:
-        _rename(native, new_name)
-    _ps2_name(_name(native))
+    _require(psu_template is not None,
+             'Choose an existing Vita or PS2 Black Edition save using '
+             'the Advanced destination template option. For Vita raw use '
+             'the extensionless port profile (such as EF); for PS2 game '
+             'file/PSU use a genuine .psu export or native game file.')
+    template_format = detect_ps2_format(psu_template)
+    name = _ps2_name(new_name if new_name is not None else _name(pc))
+    if fmt == 'vita':
+        _require(template_format == 'vita',
+                 'Vita output requires a genuine extensionless 62,669-byte '
+                 'Vita profile as the Advanced template.')
+        raw = bytearray(psu_template)
+        transfer_fields(pc, raw, source_format='pc', target_format='vita')
+        _rename_vita(raw, name)
+        if cash is not None:
+            _require(0 <= cash <= 2_000_000_000, 'Cash out of range.')
+            struct.pack_into('<I', raw, 0x4039-20, cash)
+        raw[0x20:0x30] = hashlib.md5(raw[0x30:0x4020]).digest()
+        raw[-16:] = hashlib.md5(raw[0x20:-16]).digest()
+        _from_vita(bytes(raw))
+        _require(_name(_from_vita(bytes(raw))) == name,
+                 'Vita name verification failed.')
+        return bytes(raw)
+    _require(fmt in ('ps2file', 'psu'), 'Unknown PS2 destination format.')
+    _require(template_format in ('ps2file', 'psu'),
+             'PS2 game-file/PSU output requires an existing native PS2 '
+             'Black Edition file or .psu export as Advanced template.')
+    native = bytearray(parse_ps2(psu_template))
+    transfer_fields(pc, native, source_format='pc', target_format='native')
+    _rename(native, name)
     if cash is not None:
         _require(0 <= cash <= 2_000_000_000, 'Cash out of range.')
         struct.pack_into('<I', native, 0x4039, cash)
-    _translate_padding(native, to_ps2=True)
-    # The final PS2 platform-specific slots are blank; the analogous PC
-    # region contains settings/flags and must not be copied into a PS2 save.
-    native[0xF494:0xF4D1] = bytes(0xF4D1 - 0xF494)
     _repair_header(native, '<', True)
-    result = _check_ps2_file(bytes(native))
+    output = _check_ps2_file(bytes(native))
     if fmt == 'ps2file':
-        return result
-    if fmt == 'vita':
-        return _to_vita(result)
-    if fmt == 'psu':
-        _require(psu_template is not None,
-                 'PSU output requires a user-provided SLUS-21351 .psu template.')
-        return wrap_psu(result, psu_template)
-    raise ConversionError('Unknown PS2 output format.')
+        return output
+    _require(template_format == 'psu',
+             'For full PSU output, use a complete .psu template.')
+    return wrap_psu(output, psu_template)
 
 
 def wrap_psu(native: bytes, template: bytes) -> bytes:
