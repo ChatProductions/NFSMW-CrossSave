@@ -15,6 +15,8 @@ def test_pc_profile():
     pc[0x5a31:0x5a55] = b'SMOKE'.ljust(36, b'\x00')
     pc[0x44:0x48] = b'Game'
     struct.pack_into('<I', pc, 0x48, 8)
+    for pos in _padding_locations(pc):
+        pc[pos] = 0xCD  # build a canonical PC-shaped synthetic fixture
     pc[0x34:0x44] = hashlib.md5(pc[0x44:0x4034]).digest()
     _repair_header(pc, '<', True)
     return parse_pc(bytes(pc))
