@@ -3,6 +3,8 @@ name: Build and release Windows EXE
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -20,8 +22,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run offline sanity tests
+      - name: Verify Python modules compile
+        run: python -m py_compile converter_gui.pyw converter_core.py ps2_support.py
+
+      - name: Run existing converter tests
         run: python self_test.py
+
+      - name: Run PS2 Black Edition regression tests
+        run: python -m unittest test_ps2 -v
 
       - name: Install PyInstaller
         run: python -m pip install --upgrade pyinstaller
@@ -29,59 +37,38 @@ jobs:
       - name: Build portable Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.5 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
-          if (!(Test-Path "dist/NFSMW-CrossSave-v0.5.exe")) { throw "EXE not produced" }
+          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
+          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.exe")) { throw "EXE not produced" }
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NFSMW-CrossSave-v0.5-Windows
-          path: dist/NFSMW-CrossSave-v0.5.exe
+          name: NFSMW-CrossSave-v0.7-Windows
+          path: dist/NFSMW-CrossSave-v0.7.exe
           if-no-files-found: error
 
-      - name: Check if v0.5.0 release already exists
-        id: release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $releaseList = gh release list --repo "$env:GITHUB_REPOSITORY" --json tagName | ConvertFrom-Json
-          if ($releaseList | Where-Object { $_.tagName -eq 'v0.5.0' }) {
-            "exists=true" >> $env:GITHUB_OUTPUT
-          } else {
-            "exists=false" >> $env:GITHUB_OUTPUT
-          }
-
-      - name: Publish first successful Windows build as v0.5.0
-        if: steps.release.outputs.exists == 'false'
+      - name: Publish experimental v0.7.0 Windows release (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.5.0
-          name: NFSMW CrossSave v0.5.0
+          tag_name: v0.7.0
+          name: NFSMW CrossSave v0.7.0 - Experimental PS2 Black Edition
+          prerelease: true
+          generate_release_notes: false
           body: |
-            We tested PC ↔ GameCube (USA) conversion in-game with real career saves.
-            Other GameCube editions await user testing and feedback.
-            Back up your save files and Dolphin memory card before use.
-            Windows portable executable: no Python installation required.
-          files: dist/NFSMW-CrossSave-v0.5.exe
+            This build extends v0.5, retaining its PC and GameCube conversion and
+            experimental GameCube region-transfer support.
+
+            Added PS2 Black Edition (SLUS-21351) support:
+            - PS2 Vita raw, PS2 native 20CM, and PSU import.
+            - PC <-> PS2 and GameCube <-> PS2 conversions.
+            - Vita raw, PS2 native game file, and PSU output.
+            - For PSU output, supply an exported SLUS-21351 PSU as a template.
+            - Existing cash override, backups and verification remain.
+
+            WARNING: PS2 conversion is structurally verified with real user
+            examples but has NOT been tested in-game. Make backups, and
+            only test on copies. GameCube editions outside USA remain
+            experimental. This is a prerelease.
+          files: dist/NFSMW-CrossSave-v0.7.exe
           fail_on_unmatched_files: true
-
-      - name: Refresh v0.5.0 release instructions
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release edit v0.5.0 --repo "$env:GITHUB_REPOSITORY" --notes-file RELEASE_NOTES.md
-          if ($LASTEXITCODE -ne 0) { throw "Could not update release instructions" }
-
-      - name: Retire superseded v1.0.0 release after publishing v0.5.0
-        if: steps.release.outputs.exists == 'false'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $old = gh release list --repo "$env:GITHUB_REPOSITORY" --json tagName | ConvertFrom-Json
-          if ($old | Where-Object { $_.tagName -eq 'v1.0.0' }) {
-            gh release delete v1.0.0 --repo "$env:GITHUB_REPOSITORY" --yes --cleanup-tag
-            if ($LASTEXITCODE -ne 0) { throw "Could not retire old v1.0.0 release" }
-          }
