@@ -15,7 +15,7 @@ from converter_core import (
 )
 
 APP_NAME = 'NFSMW CrossSave'
-APP_VERSION = '1.0'
+APP_VERSION = '0.7 preview'
 BG = '#f2f5f9'
 INK = '#172a45'
 REGION_LABELS = {f'{label}  |  {game_id}': game_id for game_id, label in GAMECUBE_REGIONS.items()}
@@ -49,6 +49,10 @@ class CrossSaveApp(tk.Tk):
         self.direction = 'gc_pc'
         self._last_output: Path | None = None
         self._build()
+        from ps2_gui import open_window
+        menu = tk.Menu(self)
+        menu.add_command(label="PS2 Black Edition / Vita (preview)", command=lambda: open_window(self))
+        self.config(menu=menu)
         self._log('Ready. No blank destination-platform saves required.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
@@ -76,7 +80,7 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube  •  v0.5', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube + PS2 preview  •  v0.7', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
