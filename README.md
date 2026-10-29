@@ -1,8 +1,20 @@
-# NFSMW CrossSave v0.7.3
+# NFSMW CrossSave v0.7.4
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
 
 **Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
+
+## v0.7.4: Donor-free extensionless Vita save output
+
+**GameCube → Vita is donor-free by default.** No EF profile, PS2 game file, .psu archive, or second player's save is required. Version 0.7.4 constructs a neutral Vita-format profile from the existing **sanitized, built-in PC platform scaffold** included with CrossSave and translates PC-only CD padding to Vita's AA padding before transferring your GameCube career. It does not redistribute or embed EF or any personal save.
+
+**How to convert:** Choose **GameCube → PS2**, select your GameCube .gci file, then set **Vita port profile (extensionless)** as the output format. Leave **Optional: use an existing Vita profile as template** unchecked. Click **Convert and verify**. The generated extensionless PROFILE file is intended for Vita's save directory. Back up any existing same-named profile before copying it to the Vita.
+
+**Optional compatibility comparison:** You may still check the optional Vita template control and select an original extensionless port profile, such as EF. This preserves the v0.7.2 path that was confirmed to work in-game by a user, for testing only.
+
+**Native PS2 game file and full .psu output:** These still require genuine metadata templates. The donor-free improvement specifically targets the Vita's extensionless raw profile, not every PS2 serialization format.
+
+**Verification status:** Source fields, default game car/customization records, structural lengths, save checksums and round-trips are tested. **The new donor-free Vita output still requires an in-game test.** v0.7.2 using EF was confirmed to load successfully; that does not automatically establish that v0.7.4 without EF will load.
 
 ## v0.7.3: PS2 destination-save selector fix
 
@@ -43,7 +55,7 @@ The preceding release corrected fixed PC/PS2 padding sentinels and checksum hand
 
 ### Downloads
 
-- **[Experimental v0.7.3 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.3)**: NFSMW-CrossSave-v0.7.3.exe. Native/Vita layout correction; published after the Windows Actions build passes.
+- **[Experimental v0.7.4 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.4)**: NFSMW-CrossSave-v0.7.4.exe. Native/Vita layout correction; published after the Windows Actions build passes.
 - **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
 
 ### PS2 instructions
