@@ -34,28 +34,31 @@ jobs:
       - name: Run GUI template and validation regression tests
         run: python -m unittest test_gui -v
 
+      - name: Verify byte-exact integrated EF and PSU conversions
+        run: python -m unittest test_integrated_ef -v
+
       - name: Install PyInstaller
         run: python -m pip install --upgrade pyinstaller
 
       - name: Build portable Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.4 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
-          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.4.exe")) { throw "EXE not produced" }
+          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.5 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
+          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.5.exe")) { throw "EXE not produced" }
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NFSMW-CrossSave-v0.7.4-Windows
-          path: dist/NFSMW-CrossSave-v0.7.4.exe
+          name: NFSMW-CrossSave-v0.7.5-Windows
+          path: dist/NFSMW-CrossSave-v0.7.5.exe
           if-no-files-found: error
 
-      - name: Publish experimental v0.7.4 Windows release (main only)
+      - name: Publish experimental v0.7.5 Windows release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.7.4
-          name: NFSMW CrossSave v0.7.4 - Donor-free Vita Raw Conversion
+          tag_name: v0.7.5
+          name: NFSMW CrossSave v0.7.5 - Integrated EF Black Edition Saves
           prerelease: true
           generate_release_notes: false
           body: |
@@ -63,7 +66,7 @@ jobs:
             experimental GameCube region-transfer support.
 
             PS2 Black Edition (SLUS-21351) support and hotfix:
-            - Generates extensionless Vita raw saves without an external donor or template.
+            - Integrates the exact user-supplied EF and EF.psu as the built-in templates for all To PS2 modes.
             - Uses the previously bundled sanitized PC scaffold and Vita-specific AA padding.
             - Keeps genuine Vita profile templates as optional compatibility inputs.
             - Allows source inspection without selecting the destination template.
@@ -72,14 +75,14 @@ jobs:
             - PS2 Vita raw, PS2 native 20CM, and PSU import.
             - PC <-> PS2 and GameCube <-> PS2 conversions.
             - Vita raw, PS2 native game file, and PSU output.
-            - Vita raw output needs no destination save. Native PS2 file/PSU still need templates.
+            - Every PS2 output uses original EF / EF.psu internally; external templates optional.
             - Complete PSU output requires an exported SLUS-21351 PSU for icon metadata.
             - Existing cash override, backups and verification remain.
 
             WARNING: PS2 conversion is structurally verified with real user
-            examples but DONOR-FREE Vita output has NOT been tested in-game. v0.7.0 and v0.7.1 PS2 outputs
+            examples but Integrated EF output uses the v0.7.2 conversion tested in-game. v0.7.0 and v0.7.1 PS2 outputs
             should be regenerated with this fixed build. Make backups, and
             only test on copies. GameCube editions outside USA remain
             experimental. This is a prerelease.
-          files: dist/NFSMW-CrossSave-v0.7.4.exe
+          files: dist/NFSMW-CrossSave-v0.7.5.exe
           fail_on_unmatched_files: true

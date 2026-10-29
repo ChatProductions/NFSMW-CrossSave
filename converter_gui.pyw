@@ -1,4 +1,4 @@
-"""NFSMW CrossSave v0.7.4: PC, GameCube and PS2 Black Edition conversion."""
+"""NFSMW CrossSave v0.7.5: PC, GameCube and PS2 Black Edition conversion."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,14 +20,14 @@ from ps2_support import (
 )
 
 APP_NAME = 'NFSMW CrossSave'
-APP_VERSION = '0.7.4'
+APP_VERSION = '0.7.5'
 BG = '#f2f5f9'
 INK = '#172a45'
 REGION_LABELS = {f'{label}  |  {game_id}': game_id for game_id, label in GAMECUBE_REGIONS.items()}
 PS2_FORMATS = {
     'Vita port profile (extensionless)': 'vita',
     'PS2 game file (BASLUS-21351-)': 'ps2file',
-    'PS2 PSU archive (requires .psu template)': 'psu',
+    'PS2 PSU archive (built-in EF.psu)': 'psu',
 }
 DIRECTIONS = (
     ('gc_pc', 'GameCube → PC'), ('pc_gc', 'PC → GameCube'),
@@ -36,17 +36,17 @@ DIRECTIONS = (
     ('gc_ps2', 'GameCube → PS2'),
 )
 PS2_TEMPLATE_INSTRUCTIONS = {
-    'vita': 'Donor-free by default. Optionally select a genuine Vita profile (62,669 bytes).',
-    'ps2file': 'Choose an original PS2 Black Edition game file (62,689 bytes) or a complete .psu export.',
-    'psu': 'Choose a complete .psu export from the Vita port (not a bare profile file).',
+    'vita': 'Original EF is integrated; selecting an external template is optional.',
+    'ps2file': 'PS2 game file uses original integrated EF.psu; an external override is optional.',
+    'psu': 'Original EF.psu is integrated with icons; external PSU is optional.',
 }
 
 
 def ps2_requires_template(output_format: str) -> bool:
-    """Native PS2/PSU still need metadata; Vita raw is donor-free."""
+    """All PS2 output uses integrated originals unless manually overridden."""
     if output_format not in PS2_TEMPLATE_INSTRUCTIONS:
         raise ConversionError('Select a supported PS2 output format.')
-    return output_format != 'vita'
+    return False
 
 
 def ps2_template_requirement(output_format: str) -> str:
@@ -118,10 +118,10 @@ class CrossSaveApp(tk.Tk):
         self._last_output: Path | None = None
         self._build()
         self.ps2_format_choice.trace_add('write', self._on_ps2_format_change)
-        self._log('Ready. Extensionless Vita, PC and GameCube outputs are donor-free by default.')
+        self._log('Ready. Original EF and EF.psu integrated, unchanged, for all To PS2 output modes.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
-        self._log('PS2 Black Edition SLUS-21351: corrected native/Vita layout in v0.7.4; in-game verification required.')
+        self._log('PS2 Black Edition SLUS-21351: corrected native/Vita layout in v0.7.5; in-game verification required.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -146,11 +146,11 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.4', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.5', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
-        tk.Label(notice, text='✓  Vita / PC / GameCube: donor-free', bg='#e8f2fc', fg='#14538c', font=('Segoe UI Semibold', 11), padx=14, pady=5).pack(side='left')
+        tk.Label(notice, text='✓  Built-in EF templates for Vita / PS2', bg='#e8f2fc', fg='#14538c', font=('Segoe UI Semibold', 11), padx=14, pady=5).pack(side='left')
         tk.Label(notice, text='Five GameCube editions • PS2 Black Edition • originals unchanged', bg='#e8f2fc', fg='#355d81', font=('Segoe UI', 10), padx=5).pack(side='left')
 
         nav = tk.Frame(wrapper, bg=BG)
@@ -216,7 +216,7 @@ class CrossSaveApp(tk.Tk):
         ttk.Label(self.ps2_name_group, text='4. PS2 internal profile name (optional)',
                   style='FormTitle.TLabel').pack(anchor='w', pady=(0, 3))
         ttk.Entry(self.ps2_name_group, textvariable=self.ps2_profile_name).pack(fill='x', pady=(0, 5))
-        ttk.Label(self.ps2_name_group, text='Blank keeps the source name. Vita raw needs no donor; native PS2/PSU still requires a template.',
+        ttk.Label(self.ps2_name_group, text='Blank keeps the source name. Original EF / EF.psu is selected automatically for all PS2 outputs.',
                   style='FormHelp.TLabel', wraplength=830).pack(anchor='w')
 
         self.pc_help_group = ttk.Frame(form, style='Form.TFrame')
@@ -230,7 +230,7 @@ class CrossSaveApp(tk.Tk):
         advanced = ttk.Frame(wrapper)
         advanced.pack(fill='x', pady=(6, 0))
         self.advanced_checkbox = ttk.Checkbutton(advanced,
-                        text='Optional: use a genuine Vita profile as compatibility template',
+                        text='Optional: override integrated EF / EF.psu template',
                         variable=self.use_template, command=self._toggle_template)
         self.advanced_checkbox.pack(anchor='w')
         self.template_row = ttk.Frame(advanced)
@@ -351,10 +351,10 @@ class CrossSaveApp(tk.Tk):
                      ps2_template_requirement(output_format))
         else:
             self.advanced_checkbox.configure(
-                text='Optional: use an existing Vita profile as template')
+                text='Optional: override integrated EF / EF.psu template')
             self.advanced_checkbox.pack(anchor='w')
             self.template_label.configure(
-                text='5. Optional destination save: ' +
+                text='5. Optional template override (built-in EF is automatic): ' +
                      ps2_template_requirement(output_format))
         self._toggle_template()
 
@@ -492,7 +492,7 @@ class CrossSaveApp(tk.Tk):
             elif template is None:
                 if self.direction in ('pc_ps2', 'gc_ps2'):
                     if PS2_FORMATS[self.ps2_format_choice.get()] == 'vita':
-                        self._log('Donor-free Vita: built-in neutral platform scaffold selected.')
+                        self._log('Original integrated EF used; no external template needed.')
                     else:
                         self._log('Native PS2/PSU output requires a destination template.')
                 else:
@@ -612,9 +612,9 @@ class CrossSaveApp(tk.Tk):
             if out_kind == 'gc':
                 self._log(f'GameCube identity: {game_id} / NFSMW{name}.')
             if out_kind == 'ps2' or kind == 'ps2':
-                self._log('EXPERIMENTAL PS2: checksums valid. Donor-free Vita output awaits in-game verification.')
+                self._log('EXPERIMENTAL PS2: checksums valid. Integrated EF uses the same path as the working v0.7.2 conversion.')
                 if out_kind == 'ps2' and template is None:
-                    self._log('No external donor used: built-in neutral Vita scaffold selected.')
+                    self._log('Original integrated EF used; no external template needed.')
             if ((kind == 'gc' and source_info['game_id'] != 'GOWE69') or
                 (out_kind == 'gc' and game_id != 'GOWE69')):
                 self._log('EXPERIMENTAL REGION: Output is structurally valid but requires in-game testing.')

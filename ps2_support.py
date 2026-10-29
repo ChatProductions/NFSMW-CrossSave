@@ -308,6 +308,8 @@ def pc_to_ps2(pc_data: bytes, *, cash: int | None = None,
     optional template. PS2-native/PSU output retains template requirements.
     """
     pc = parse_pc(pc_data)
+    if psu_template is None:
+        psu_template = integrated_template(fmt)
     name = _ps2_name(new_name if new_name is not None else _name(pc))
     if fmt == 'vita':
         if psu_template is None:
@@ -384,3 +386,29 @@ def gc_to_ps2(gci: bytes, *, cash: int | None = None,
     pc = gc_to_pc(gci, pc_template=pc_template)
     return pc_to_ps2(pc, cash=cash, new_name=new_name,
                      fmt=fmt, psu_template=psu_template)
+
+
+# Built in from the exact EF and BASLUS-21351-EF.psu files supplied by
+# the user and explicitly authorized for publication. No sanitization.
+INTEGRATED_TEMPLATE_SHA256 = {
+    'vita': '205283cd60d266f98e97895600a6d169e9b2f84489f70dd0e3910576789e2646',
+    'psu': '453116e60330026644718dbfdbd8fcc0781927207ef59cc177c037461e6263d6',
+}
+
+
+def integrated_template(fmt: str) -> bytes:
+    """Load an unchanged EF / EF.psu bundled via PyInstaller assets."""
+    import sys
+    from pathlib import Path
+    if fmt not in ('vita', 'ps2file', 'psu'):
+        raise ConversionError('Unsupported PS2 output format.')
+    kind = 'vita' if fmt == 'vita' else 'psu'
+    root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
+    fname = 'EF' if kind == 'vita' else 'BASLUS-21351-EF.psu'
+    try:
+        raw = (root/'assets'/fname).read_bytes()
+    except OSError as exc:
+        raise ConversionError('Missing bundled EF template: ' + fname) from exc
+    if hashlib.sha256(raw).hexdigest() != INTEGRATED_TEMPLATE_SHA256[kind]:
+        raise ConversionError('Bundled EF template failed original SHA-256 verification.')
+    return raw
