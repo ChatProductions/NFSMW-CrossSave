@@ -402,7 +402,7 @@ class CrossSaveApp(tk.Tk):
         self.log.see('end')
         self.log.configure(state='disabled')
 
-    def _inputs(self):
+    def _inputs(self, *, require_destination=True):
         kind = SOURCE_KINDS[self.direction]
         source_path = {'pc': self.pc_in, 'gc': self.gc_in, 'ps2': self.ps2_in}[kind].get().strip()
         if not source_path:
@@ -420,6 +420,8 @@ class CrossSaveApp(tk.Tk):
         if required_ps2 or (self.direction != 'gc_gc' and self.use_template.get()):
             selected = self.template_path.get().strip()
             if not selected:
+                if required_ps2 and not require_destination:
+                    return source, source.read_bytes(), None, None, folder, kind
                 if required_ps2:
                     output_format = PS2_FORMATS[self.ps2_format_choice.get()]
                     raise ConversionError(
@@ -456,7 +458,7 @@ class CrossSaveApp(tk.Tk):
 
     def inspect(self):
         try:
-            _, source, _, template, _, kind = self._inputs()
+            _, source, _, template, _, kind = self._inputs(require_destination=False)
             info = self._summary('Source', source, kind)
             if kind == 'gc':
                 game_id = info['game_id']
@@ -470,8 +472,11 @@ class CrossSaveApp(tk.Tk):
             if self.direction == 'gc_gc':
                 self._log('GameCube -> GameCube preserves the original native gameplay block.')
             elif template is None:
-                self._log('Built-in destination-platform scaffold selected. No donor required.')
-            self._log('Save integrity verified. This does not guarantee in-game regional compatibility.')
+                if self.direction in ('pc_ps2', 'gc_ps2'):
+                    self._log('Source inspected. To convert, choose the required destination save below.')
+                else:
+                    self._log('Built-in destination-platform scaffold selected. No donor required.')
+            self._log('Source integrity verified. This does not establish in-game compatibility.')
         except (ConversionError, OSError) as exc:
             self._log('ERROR: ' + str(exc))
             messagebox.showerror('Cannot inspect save', str(exc))
