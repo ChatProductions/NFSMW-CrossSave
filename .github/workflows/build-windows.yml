@@ -23,7 +23,7 @@ jobs:
           python-version: '3.12'
 
       - name: Verify Python modules compile
-        run: python -m py_compile converter_gui.pyw converter_core.py ps2_support.py
+        run: python -m py_compile converter_gui.pyw converter_core.py ps2_support.py ps2_layout.py
 
       - name: Run existing converter tests
         run: python self_test.py
@@ -37,22 +37,22 @@ jobs:
       - name: Build portable Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.1 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
-          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.1.exe")) { throw "EXE not produced" }
+          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.2 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
+          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.2.exe")) { throw "EXE not produced" }
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NFSMW-CrossSave-v0.7.1-Windows
-          path: dist/NFSMW-CrossSave-v0.7.1.exe
+          name: NFSMW-CrossSave-v0.7.2-Windows
+          path: dist/NFSMW-CrossSave-v0.7.2.exe
           if-no-files-found: error
 
-      - name: Publish experimental v0.7.1 Windows release (main only)
+      - name: Publish experimental v0.7.2 Windows release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.7.1
-          name: NFSMW CrossSave v0.7.1 - PS2 Padding Hotfix
+          tag_name: v0.7.2
+          name: NFSMW CrossSave v0.7.2 - PS2/Vita Layout Correction
           prerelease: true
           generate_release_notes: false
           body: |
@@ -60,19 +60,21 @@ jobs:
             experimental GameCube region-transfer support.
 
             PS2 Black Edition (SLUS-21351) support and hotfix:
-            - Fixes PC CD padding incorrectly copied to PS2 AA padding in v0.7.0.
-            - Fixes PS2-only tail and converts PC padding in the reverse direction.
-            - Rejects v0.7.0 corrupted PS2 profiles rather than treating their MD5 as proof of loadability.
+            - Fixes PS2-native garage/customization sections being written at PC offsets in v0.7.0/v0.7.1.
+            - Separates Vita raw profile offsets from PS2-native game-file offsets.
+            - Uses a genuine destination-format save template to preserve platform-only fields.
+            - Rejects layout-invalid PS2-native game files, even if CRC/MD5 pass.
             - PS2 Vita raw, PS2 native 20CM, and PSU import.
             - PC <-> PS2 and GameCube <-> PS2 conversions.
             - Vita raw, PS2 native game file, and PSU output.
-            - For PSU output, supply an exported SLUS-21351 PSU as a template.
+            - For ALL PS2 output formats, provide a genuine destination-format save under Advanced.
+            - For PSU output, specifically supply an exported SLUS-21351 PSU as a template.
             - Existing cash override, backups and verification remain.
 
             WARNING: PS2 conversion is structurally verified with real user
-            examples but has NOT been tested in-game. v0.7.0 PS2 outputs
+            examples but has NOT been tested in-game. v0.7.0 and v0.7.1 PS2 outputs
             should be regenerated with this fixed build. Make backups, and
             only test on copies. GameCube editions outside USA remain
             experimental. This is a prerelease.
-          files: dist/NFSMW-CrossSave-v0.7.1.exe
+          files: dist/NFSMW-CrossSave-v0.7.2.exe
           fail_on_unmatched_files: true
