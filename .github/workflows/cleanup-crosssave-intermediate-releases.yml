@@ -1,0 +1,52 @@
+name: One-time cleanup of intermediate CrossSave releases
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-crosssave-intermediate-releases.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify and remove only the five intermediate releases and tags
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const keep = ["v0.5.0", "v0.7.5"];
+            const obsolete = [
+              {tag: "v0.7.0", id: 428355306},
+              {tag: "v0.7.1", id: 428375748},
+              {tag: "v0.7.2", id: 428407433},
+              {tag: "v0.7.3", id: 428423478},
+              {tag: "v0.7.4", id: 428443403}
+            ];
+            // Preflight: both endpoint releases/tags must exist.
+            for (const tag of keep) {
+              const r = await github.rest.repos.getReleaseByTag({owner, repo, tag});
+              await github.rest.git.getRef({owner, repo, ref: `tags/${tag}`});
+              if (r.data.tag_name !== tag || r.data.draft) throw new Error(`Cannot confirm retained release ${tag}`);
+            }
+            // Preflight every obsolete release ID and tag before deleting any.
+            for (const {tag, id} of obsolete) {
+              const r = await github.rest.repos.getReleaseByTag({owner, repo, tag});
+              await github.rest.git.getRef({owner, repo, ref: `tags/${tag}`});
+              if (r.data.id !== id || r.data.tag_name !== tag) {
+                throw new Error(`Unexpected release identity for ${tag}; aborting safely`);
+              }
+            }
+            for (const {tag, id} of obsolete) {
+              await github.rest.repos.deleteRelease({owner, repo, release_id: id});
+              await github.rest.git.deleteRef({owner, repo, ref: `tags/${tag}`});
+              core.info(`Deleted release and tag: ${tag}`);
+            }
+            for (const tag of keep) {
+              await github.rest.repos.getReleaseByTag({owner, repo, tag});
+              await github.rest.git.getRef({owner, repo, ref: `tags/${tag}`});
+              core.info(`Retained release and tag: ${tag}`);
+            }
