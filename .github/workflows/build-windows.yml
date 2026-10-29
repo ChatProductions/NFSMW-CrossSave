@@ -40,22 +40,22 @@ jobs:
       - name: Build portable Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.3 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
-          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.3.exe")) { throw "EXE not produced" }
+          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.4 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
+          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.4.exe")) { throw "EXE not produced" }
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NFSMW-CrossSave-v0.7.3-Windows
-          path: dist/NFSMW-CrossSave-v0.7.3.exe
+          name: NFSMW-CrossSave-v0.7.4-Windows
+          path: dist/NFSMW-CrossSave-v0.7.4.exe
           if-no-files-found: error
 
-      - name: Publish experimental v0.7.3 Windows release (main only)
+      - name: Publish experimental v0.7.4 Windows release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.7.3
-          name: NFSMW CrossSave v0.7.3 - Required PS2 Template UX Fix
+          tag_name: v0.7.4
+          name: NFSMW CrossSave v0.7.4 - Donor-free Vita Raw Conversion
           prerelease: true
           generate_release_notes: false
           body: |
@@ -63,23 +63,23 @@ jobs:
             experimental GameCube region-transfer support.
 
             PS2 Black Edition (SLUS-21351) support and hotfix:
-            - Fixes the v0.7.2 contradiction: Advanced was disabled yet the error said to uncheck it.
-            - Replaces the disabled Advanced checkbox with a clear, required destination-save selector.
-            - Provides format-specific template guidance and validates the selected template before conversion.
+            - Generates extensionless Vita raw saves without an external donor or template.
+            - Uses the previously bundled sanitized PC scaffold and Vita-specific AA padding.
+            - Keeps genuine Vita profile templates as optional compatibility inputs.
             - Allows source inspection without selecting the destination template.
             - Still uses a genuine destination-format save to preserve platform-only fields.
             - Rejects layout-invalid PS2-native game files, even if CRC/MD5 pass.
             - PS2 Vita raw, PS2 native 20CM, and PSU import.
             - PC <-> PS2 and GameCube <-> PS2 conversions.
             - Vita raw, PS2 native game file, and PSU output.
-            - For ALL PS2 output formats, provide a genuine destination-format save under Advanced.
-            - For PSU output, specifically supply an exported SLUS-21351 PSU as a template.
+            - Vita raw output needs no destination save. Native PS2 file/PSU still need templates.
+            - Complete PSU output requires an exported SLUS-21351 PSU for icon metadata.
             - Existing cash override, backups and verification remain.
 
             WARNING: PS2 conversion is structurally verified with real user
-            examples but has NOT been tested in-game. v0.7.0 and v0.7.1 PS2 outputs
+            examples but DONOR-FREE Vita output has NOT been tested in-game. v0.7.0 and v0.7.1 PS2 outputs
             should be regenerated with this fixed build. Make backups, and
             only test on copies. GameCube editions outside USA remain
             experimental. This is a prerelease.
-          files: dist/NFSMW-CrossSave-v0.7.3.exe
+          files: dist/NFSMW-CrossSave-v0.7.4.exe
           fail_on_unmatched_files: true
