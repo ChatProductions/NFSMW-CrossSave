@@ -335,12 +335,17 @@ class CrossSaveApp(tk.Tk):
             self.template_row.pack_forget()
 
     def _browse_template(self):
-        types = ([('All files', '*.*')] if PS2_FORMATS.get(self.ps2_format_choice.get()) == 'vita'
-                  else [('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')])
-                 if self.direction in ('pc_ps2', 'gc_ps2') else
-                 [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')]
-                 if self.direction in ('pc_gc', 'ps2_gc') else [('All files', '*.*')])
-        path = filedialog.askopenfilename(title='Optional destination-platform template', filetypes=types)
+        if self.direction in ('pc_ps2', 'gc_ps2'):
+            if PS2_FORMATS.get(self.ps2_format_choice.get()) == 'vita':
+                types = [('All files', '*.*')]
+            else:
+                types = [('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')]
+        elif self.direction in ('pc_gc', 'ps2_gc'):
+            types = [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')]
+        else:
+            types = [('All files', '*.*')]
+        path = filedialog.askopenfilename(title='Destination-platform template',
+                                          filetypes=types)
         if path:
             self.template_path.set(path)
 
