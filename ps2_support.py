@@ -39,6 +39,61 @@ def _ps2_name(name: str) -> str:
     return result
 
 
+
+# PC and PS2 use the same little-endian career offsets but different
+# fixed padding sentinels: PC uses CD, PS2 uses AA. In v0.7, raw PC
+# records were copied directly into Vita profiles, producing internally
+# checksummed saves which the PS2 game could nevertheless reject.
+#
+# These locations are data-independent structural fields, identified
+# by comparing genuine PS2 Black Edition SLUS-21351 and PC/GC saves.
+def _padding_locations(data: bytes):
+    yield from range(0x429D + 13, 0x429D + 16)  # case identifier padding
+    # 26 eight-byte garage statistic records followed by empty record slots
+    for i in range(26):
+        p = 0x5A54 + i * 8 + 2
+        yield from range(p, p + 3)
+    yield from range(0x5B21, 0x5B41)
+    for p, size in ((0x5B52, 3), (0x5B5B, 2), (0x5BB0, 1), (0x5BC4, 1)):
+        yield from range(p, p + size)
+    # 200 car database records, including the first 81 scaffold records
+    for i in range(200):
+        p = 0x5BC5 + i * 20 + 18
+        yield from range(p, p + 2)
+    # All 75 customizations, not only the final 44 copied by the GC core
+    for i in range(75):
+        p = 0x6B65 + i * 0x198
+        yield from range(p + 0x116, p + 0x118)
+        yield from range(p + 0x195, p + 0x198)
+    for i in range(25):
+        p = 0xE2ED + i * 0x38
+        for d in (1, 10, 11):
+            yield p + d
+        if data[p] == 0xff:  # unused pursuit slot
+            for d in (*range(2, 10), *range(12, 24)):
+                yield p + d
+
+
+def _translate_padding(data: bytearray, *, to_ps2: bool) -> int:
+    # Sanitized source scaffolds may have zero-filled structural padding.
+    # Normalize every known reserved byte, not only bytes already set CD/AA.
+    dest = 0xAA if to_ps2 else 0xCD
+    count = 0
+    for p in _padding_locations(data):
+        if data[p] != dest:
+            data[p] = dest
+            count += 1
+    return count
+
+
+def _check_ps2_platform_fields(content: bytes):
+    # The v0.7 output had valid MD5s but carried PC-only CD sentinels.
+    _require(content[0x429D + 13:0x429D + 16] == bytes([0xAA]) * 3
+             and content[0x5A56:0x5A59] == bytes([0xAA]) * 3,
+             'PS2 profile has PC-specific padding (v0.7 bug). '
+             'Reconvert using v0.7.1 or repair the existing profile.')
+
+
 def _check_ps2_file(content: bytes) -> bytes:
     _require(len(content) == PS2_FILE_BYTES, 'Expected 0xF4E1-byte PS2 Black Edition game file.')
     _require(content[:4] == b'20CM', 'PS2 game file has incorrect 20CM signature.')
@@ -61,6 +116,7 @@ def _check_ps2_file(content: bytes) -> bytes:
         _require(struct.unpack_from('<I', content, field)[0] == ea_crc32(content[start:end]),
                  f'PS2 header CRC mismatch at 0x{field:X}.')
     _ps2_name(_name(content))
+    _check_ps2_platform_fields(content)
     return content
 
 
@@ -180,7 +236,11 @@ def ps2_to_pc(ps2: bytes, pc_template: bytes | None = None,
     native = parse_ps2(ps2)
     pc = bytearray(parse_pc(pc_template) if pc_template is not None
                    else _built_in_scaffold('pc'))
+    # Retain PC-only tail settings rather than importing PS2 empty slots.
+    pc_tail = bytes(pc[0xF494:0xF4D1])
     pc[0x34:PS2_FILE_BYTES] = native[0x34:]
+    pc[0xF494:0xF4D1] = pc_tail
+    _translate_padding(pc, to_ps2=False)
     if new_name is not None:
         _rename(pc, new_name)
     if cash is not None:
@@ -204,6 +264,10 @@ def pc_to_ps2(pc_data: bytes, *, cash: int | None = None,
     if cash is not None:
         _require(0 <= cash <= 2_000_000_000, 'Cash out of range.')
         struct.pack_into('<I', native, 0x4039, cash)
+    _translate_padding(native, to_ps2=True)
+    # The final PS2 platform-specific slots are blank; the analogous PC
+    # region contains settings/flags and must not be copied into a PS2 save.
+    native[0xF494:0xF4D1] = bytes(0xF4D1 - 0xF494)
     _repair_header(native, '<', True)
     result = _check_ps2_file(bytes(native))
     if fmt == 'ps2file':

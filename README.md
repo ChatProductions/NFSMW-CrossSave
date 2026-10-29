@@ -1,10 +1,16 @@
-# NFSMW CrossSave v0.7
+# NFSMW CrossSave v0.7.1
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
 
 **Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
 
-## What's new in v0.7
+## Critical fix in v0.7.1
+
+**Do not use v0.7.0 for PS2 Black Edition save output.** It mistakenly carried PC-only CD padding sentinels into PS2 profiles, which use AA. Both MD5 checks passed, but the game could still report the resulting file as corrupt. v0.7.1 corrects these fields in both directions, clears PS2-only tail slots, rejects old incorrectly padded PS2 files, and adds regression coverage. Existing PC/GameCube functions remain available.
+
+**Regenerate v0.7.0 PS2 profiles from the original PC or GC source using v0.7.1.** In-game compatibility still needs confirmation.
+
+## What's new since v0.5
 
 - All three v0.5 modes remain available: **GameCube → PC**, **PC → GameCube**, and **GameCube → GameCube** (regional edition transfer).
 - Four new modes in the **same original blue-and-white GUI**: **PS2 → PC**, **PC → PS2**, **PS2 → GameCube**, **GameCube → PS2**.
@@ -16,7 +22,7 @@ A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion
 
 ### Downloads
 
-- **[Experimental v0.7.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.0)**: NFSMW-CrossSave-v0.7.exe. This is an experimental prerelease; it appears when the Windows Actions build succeeds on main.
+- **[Experimental v0.7.1 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.1)**: NFSMW-CrossSave-v0.7.1.exe. PS2 padding corruption hotfix; published after the Windows Actions build passes.
 - **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
 
 ### PS2 instructions
