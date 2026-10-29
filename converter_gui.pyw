@@ -288,6 +288,15 @@ class CrossSaveApp(tk.Tk):
             'gc_ps2': 'Required: Vita raw donor for Vita output; PS2 game-file or .psu donor for PS2 output',
             'gc_gc': 'No template',
         }[direction])
+        # Destination-platform scaffold is mandatory for PS2 output.
+        # Automatically reveal the donor picker instead of allowing the
+        # old v0.7 behavior of generating checksum-valid corrupt files.
+        if direction in ('pc_ps2', 'gc_ps2'):
+            self.use_template.set(True)
+            self.advanced_checkbox.configure(state='disabled')
+        else:
+            self.use_template.set(False)
+            self.advanced_checkbox.configure(state='normal')
         self._toggle_template()
         self.source_region.set('Source GameCube edition: detected when inspecting a save' if kind == 'gc'
                                else 'PS2 Black Edition SLUS-21351 (experimental)' if kind == 'ps2'
@@ -326,7 +335,8 @@ class CrossSaveApp(tk.Tk):
             self.template_row.pack_forget()
 
     def _browse_template(self):
-        types = ([('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')]
+        types = ([('All files', '*.*')] if PS2_FORMATS.get(self.ps2_format_choice.get()) == 'vita'
+                  else [('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')])
                  if self.direction in ('pc_ps2', 'gc_ps2') else
                  [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')]
                  if self.direction in ('pc_gc', 'ps2_gc') else [('All files', '*.*')])
