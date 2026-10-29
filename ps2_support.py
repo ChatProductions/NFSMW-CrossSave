@@ -5,8 +5,10 @@ Three input representations are recognized:
 - PS2 memory-card's 0xF4E1-byte 20CM game file.
 - A PSU archive with the PS2 file and its memory-card icon metadata.
 
-PS2 output in .psu form needs a user-supplied PSU template, so the app
-never redistributes the user's career, console icon, or proprietary art.
+Vita raw output can be generated donor-free from CrossSave's already
+bundled, sanitized PC platform scaffold. Optional genuine Vita templates
+remain supported for compatibility checks. Complete PS2 .psu packaging
+still requires metadata/icon assets from the user's own .psu export.
 Offline structural validation does NOT imply verified in-game compatibility.
 """
 from __future__ import annotations
@@ -86,6 +88,31 @@ def _translate_padding(data: bytearray, *, to_ps2: bool) -> int:
             data[p] = dest
             count += 1
     return count
+
+
+def _neutral_vita_scaffold() -> bytearray:
+    """Construct an extensionless Vita profile from existing neutral assets.
+
+    The original CrossSave PC scaffold contains no personal career data.
+    The Vita profile uses the PC-aligned layout with a 20-byte-shorter
+    header, and AA platform padding instead of the PC's CD sentinels.
+    This deliberately does NOT embed EF, its hashes, or any user save.
+    """
+    source = bytearray(_built_in_scaffold('pc')[:PS2_FILE_BYTES])
+    _require(len(source) == PS2_FILE_BYTES,
+             'Built-in PC scaffold cannot initialize Vita profile.')
+    _translate_padding(source, to_ps2=True)
+    raw = bytearray(PS2_VITA_BYTES)
+    struct.pack_into('<4I', raw, 0, 8, PS2_VITA_BYTES - 16,
+                     0x10D, PS2_VITA_BYTES - 16)
+    raw[0x20:] = source[0x34:PS2_FILE_BYTES]
+    _require(raw[0x5BC5-20:0x5BC9-20] == b'\x78\x56\x34\x12',
+             'Built-in platform scaffold lacks the Vita car database.')
+    _require(raw[0x9CCD-20:0x9CD1-20] == b'\x84\x0f\x85\x0f',
+             'Built-in platform scaffold lacks default customizations.')
+    # The profile MD5 is recomputed after inserting the real career.
+    raw[-16:] = bytes(16)
+    return raw
 
 
 def _check_ps2_platform_fields(content: bytes):
@@ -276,23 +303,20 @@ def pc_to_ps2(pc_data: bytes, *, cash: int | None = None,
               psu_template: bytes | None = None) -> bytes:
     """Convert PC/Vita (unshifted) to correctly shifted PS2-native save.
 
-    A genuine destination-format save is required until all platform-only
-    fields are understood and a sanitized platform scaffold is proven
-    equivalent in-game. This avoids silent corruption from v0.7.0/0.7.1.
+    Vita raw output is donor-free by default using the existing neutral
+    PC platform scaffold. A real Vita profile can still be supplied as an
+    optional template. PS2-native/PSU output retains template requirements.
     """
     pc = parse_pc(pc_data)
-    _require(psu_template is not None,
-             'Choose an existing Vita or PS2 Black Edition save using '
-             'the Advanced destination template option. For Vita raw use '
-             'the extensionless port profile (such as EF); for PS2 game '
-             'file/PSU use a genuine .psu export or native game file.')
-    template_format = detect_ps2_format(psu_template)
     name = _ps2_name(new_name if new_name is not None else _name(pc))
     if fmt == 'vita':
-        _require(template_format == 'vita',
-                 'Vita output requires a genuine extensionless 62,669-byte '
-                 'Vita profile as the Advanced template.')
-        raw = bytearray(psu_template)
+        if psu_template is None:
+            raw = _neutral_vita_scaffold()
+        else:
+            _require(detect_ps2_format(psu_template) == 'vita',
+                     'Optional Vita template must be an extensionless '
+                     '62,669-byte profile from the Vita port.')
+            raw = bytearray(psu_template)
         transfer_fields(pc, raw, source_format='pc', target_format='vita')
         _rename_vita(raw, name)
         if cash is not None:
@@ -305,6 +329,11 @@ def pc_to_ps2(pc_data: bytes, *, cash: int | None = None,
                  'Vita name verification failed.')
         return bytes(raw)
     _require(fmt in ('ps2file', 'psu'), 'Unknown PS2 destination format.')
+    _require(psu_template is not None,
+             'Native PS2 game files and PSU archives still require a genuine '
+             'PS2 Black Edition destination template. Choose Vita port '
+             'profile (extensionless) for donor-free output.')
+    template_format = detect_ps2_format(psu_template)
     _require(template_format in ('ps2file', 'psu'),
              'PS2 game-file/PSU output requires an existing native PS2 '
              'Black Edition file or .psu export as Advanced template.')
