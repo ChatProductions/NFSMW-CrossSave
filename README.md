@@ -1,8 +1,18 @@
-# NFSMW CrossSave v0.7.2
+# NFSMW CrossSave v0.7.3
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
 
 **Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
+
+## v0.7.3: PS2 destination-save selector fix
+
+v0.7.2 required a destination save template for PS2 output, but incorrectly displayed a disabled Advanced checkbox and an error asking you to uncheck it. v0.7.3 replaces that contradiction with a **visible, required destination-save picker** and format-specific instructions. The template is verified against the selected output format before conversion. You may also **Inspect save** without a destination template; conversion still requires one.
+
+**GameCube → Vita (extensionless output):** select **GameCube → PS2**, open your GameCube .gci as the source, select **Vita port profile (extensionless)**, then click **Browse destination save** and choose a genuine raw profile from the Vita port (for example EF, 62,669 bytes). Click **Convert and verify** to produce an extensionless output named after your GameCube career.
+
+**GameCube → PS2 importer:** select **PS2 PSU archive**, and choose a genuine exported BASLUS-21351-*.psu as the destination save. The output .psu can be imported by the Vita port 1.3.7 from ux0:data/nfsmw/save/. Do not use a generated v0.7.0/0.7.1 PS2 file as the template.
+
+**Important:** The genuine destination template requirement remains because unknown platform-only fields cannot yet be safely synthesized. The PS2/Vita conversion has passed structural regression tests but remains unverified in-game.
 
 ## Critical PS2/Vita serialization fix in v0.7.2
 
@@ -33,7 +43,7 @@ The preceding release corrected fixed PC/PS2 padding sentinels and checksum hand
 
 ### Downloads
 
-- **[Experimental v0.7.2 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.2)**: NFSMW-CrossSave-v0.7.2.exe. Native/Vita layout correction; published after the Windows Actions build passes.
+- **[Experimental v0.7.3 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.3)**: NFSMW-CrossSave-v0.7.3.exe. Native/Vita layout correction; published after the Windows Actions build passes.
 - **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
 
 ### PS2 instructions
