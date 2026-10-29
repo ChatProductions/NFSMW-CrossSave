@@ -1,3 +1,38 @@
+# NFSMW CrossSave v0.7
+
+A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
+
+**Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
+
+## What's new in v0.7
+
+- All three v0.5 modes remain available: **GameCube → PC**, **PC → GameCube**, and **GameCube → GameCube** (regional edition transfer).
+- Four new modes in the **same original blue-and-white GUI**: **PS2 → PC**, **PC → PS2**, **PS2 → GameCube**, **GameCube → PS2**.
+- Accepts PS2 Black Edition saves from the latest Vita port (extensionless 62,669-byte profiles such as EF), native PS2 20CM files (62,689 bytes), and exported .psu memory-card archives (containing BASLUS-21351-PROFILE).
+- PS2 output formats: **Vita raw** (PROFILE), **PS2 memory-card game file** (BASLUS-21351-PROFILE), or complete **PSU archive** (.psu).
+- **PSU export requires a user-provided PS2 Black Edition .psu template** to preserve its memory-card icon and metadata. Enable *Advanced*, browse to your existing .psu, and select **PS2 PSU archive** as output. A donor is **not required** for Vita raw or native PS2 game-file output.
+- Automatic source inspection, cash editing, corruption checks, original-file preservation, and timestamped backups remain.
+- No personal save files or copyrighted PS2 icon assets are bundled.
+
+### Downloads
+
+- **[Experimental v0.7.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.0)**: NFSMW-CrossSave-v0.7.exe. This is an experimental prerelease; it appears when the Windows Actions build succeeds on main.
+- **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
+
+### PS2 instructions
+
+1. Choose the conversion direction, such as **PS2 → PC** or **PC → PS2**.
+2. For **PS2 input**, browse to the Vita raw profile, native BASLUS-21351-* game file, or .psu export.
+3. For **PS2 output**, select the format. Vita saves are extensionless; PS2 .psu needs the original PS2 archive supplied under *Advanced*.
+4. Click **Inspect save**, then **Convert and verify**. Back up the source file before importing the generated save in a game.
+5. For PC output, install the generated PROFILE\PROFILE inside Documents\NFS Most Wanted\. For GameCube output, import the generated .gci in Dolphin's matching regional memory card.
+
+**Limitations:** PS2 Black Edition uses the US SLUS-21351 save title identity. Other PS2 editions are not supported. Structural tests do not demonstrate that the game will load a converted career; verify in-game using copies.
+
+---
+
+## Previous v0.5 documentation (still applicable to PC and GameCube)
+
 # NFSMW CrossSave v0.5
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC and GameCube, with an experimental GameCube regional-edition converter.

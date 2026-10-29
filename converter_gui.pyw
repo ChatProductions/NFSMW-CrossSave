@@ -1,4 +1,4 @@
-"""NFSMW CrossSave v0.5: PC / GameCube save conversion and experimental region transfer."""
+"""NFSMW CrossSave v0.7: PC, GameCube and experimental PS2 Black Edition support."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,18 +15,39 @@ from converter_core import (
 )
 
 APP_NAME = 'NFSMW CrossSave'
-APP_VERSION = '1.0'
+from ps2_support import (
+    PS2_FOLDER_PREFIX, detect_ps2_format, parse_ps2, describe_ps2,
+    pc_to_ps2, ps2_to_pc, ps2_to_gc, gc_to_ps2,
+)
+
+APP_VERSION = '0.7'
 BG = '#f2f5f9'
 INK = '#172a45'
 REGION_LABELS = {f'{label}  |  {game_id}': game_id for game_id, label in GAMECUBE_REGIONS.items()}
+PS2_FORMATS = {
+    'Vita port profile (extensionless)': 'vita',
+    'PS2 game file (BASLUS-21351-)': 'ps2file',
+    'PS2 PSU archive (requires .psu template)': 'psu',
+}
+DIRECTIONS = (
+    ('gc_pc', 'GameCube → PC'), ('pc_gc', 'PC → GameCube'),
+    ('gc_gc', 'GameCube → GameCube'), ('ps2_pc', 'PS2 → PC'),
+    ('pc_ps2', 'PC → PS2'), ('ps2_gc', 'PS2 → GameCube'),
+    ('gc_ps2', 'GameCube → PS2'),
+)
+SOURCE_KINDS = {
+    'gc_pc': 'gc', 'pc_gc': 'pc', 'gc_gc': 'gc', 'ps2_pc': 'ps2',
+    'pc_ps2': 'pc', 'ps2_gc': 'ps2', 'gc_ps2': 'gc',
+}
+
 
 
 class CrossSaveApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f'{APP_NAME}  |  v{APP_VERSION}')
-        self.geometry('930x840')
-        self.minsize(835, 790)
+        self.geometry('960x920')
+        self.minsize(835, 820)
         self.configure(bg=BG)
         try:
             self.iconbitmap(str(Path(__file__).resolve().parent / 'assets' / 'crosssave.ico'))
@@ -35,11 +56,20 @@ class CrossSaveApp(tk.Tk):
         self._style()
         self.gc_in = tk.StringVar()
         self.pc_in = tk.StringVar()
+        self.ps2_in = tk.StringVar()
         self.pc_out = tk.StringVar()
         self.gc_out = tk.StringVar()
         self.gc_gc_out = tk.StringVar()
+        self.output_vars = {
+            'gc_pc': self.pc_out, 'pc_gc': self.gc_out, 'gc_gc': self.gc_gc_out,
+            'ps2_pc': tk.StringVar(), 'pc_ps2': tk.StringVar(),
+            'ps2_gc': tk.StringVar(), 'gc_ps2': tk.StringVar(),
+        }
         self.pc_gc_profile_name = tk.StringVar()
         self.gc_gc_profile_name = tk.StringVar()
+        self.ps2_gc_profile_name = tk.StringVar()
+        self.ps2_profile_name = tk.StringVar()
+        self.ps2_format_choice = tk.StringVar(value=next(iter(PS2_FORMATS)))
         self.region_choice = tk.StringVar(value=next(iter(REGION_LABELS)))
         self.source_region = tk.StringVar(value='Source GameCube edition: detected when inspecting a save')
         self.use_template = tk.BooleanVar(value=False)
@@ -52,6 +82,7 @@ class CrossSaveApp(tk.Tk):
         self._log('Ready. No blank destination-platform saves required.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
+        self._log('PS2 Black Edition SLUS-21351: structurally tested, NOT yet in-game verified.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -76,22 +107,25 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube  •  v0.5', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
         tk.Label(notice, text='✓  Donor-free conversion', bg='#e8f2fc', fg='#14538c', font=('Segoe UI Semibold', 11), padx=14, pady=5).pack(side='left')
-        tk.Label(notice, text='Five GameCube editions • automatic detection • original files unchanged', bg='#e8f2fc', fg='#355d81', font=('Segoe UI', 10), padx=5).pack(side='left')
+        tk.Label(notice, text='Five GameCube editions • PS2 Black Edition • originals unchanged', bg='#e8f2fc', fg='#355d81', font=('Segoe UI', 10), padx=5).pack(side='left')
 
         nav = tk.Frame(wrapper, bg=BG)
         nav.pack(fill='x')
         self.nav_buttons = {}
         self.nav_bars = {}
-        for key, title in [('gc_pc', 'GameCube → PC'), ('pc_gc', 'PC → GameCube'), ('gc_gc', 'GameCube → GameCube')]:
-            cell = tk.Frame(nav, bg=BG)
+        nav_rows = [tk.Frame(nav, bg=BG), tk.Frame(nav, bg=BG)]
+        for nav_row in nav_rows:
+            nav_row.pack(fill='x')
+        for index, (key, title) in enumerate(DIRECTIONS):
+            cell = tk.Frame(nav_rows[index // 4], bg=BG)
             cell.pack(side='left', fill='y', padx=(0, 4))
             btn = tk.Button(cell, text=title, relief='flat', bd=0,
-                            font=('Segoe UI Semibold', 10), padx=17, pady=9,
+                            font=('Segoe UI Semibold', 9), padx=12, pady=7,
                             cursor='hand2', command=lambda k=key: self._set_direction(k))
             btn.pack(fill='x')
             bar = tk.Frame(cell, height=3)
@@ -100,7 +134,7 @@ class CrossSaveApp(tk.Tk):
             self.nav_bars[key] = bar
 
         panel = tk.Frame(wrapper, bg='white', highlightbackground='#c8d5e3',
-                         highlightthickness=1, height=390)
+                         highlightthickness=1, height=440)
         panel.pack(fill='x')
         panel.pack_propagate(False)
         form = ttk.Frame(panel, padding=(16, 11, 16, 10), style='Form.TFrame')
@@ -135,6 +169,17 @@ class CrossSaveApp(tk.Tk):
         self.gc_name_help = ttk.Label(self.gc_name_group, text='', style='FormHelp.TLabel', wraplength=830)
         self.gc_name_help.pack(anchor='w')
 
+        self.ps2_out_group = ttk.Frame(form, style='Form.TFrame')
+        ttk.Label(self.ps2_out_group, text='3. PS2 output format', style='FormTitle.TLabel').pack(anchor='w', pady=(0, 3))
+        ttk.Combobox(self.ps2_out_group, state='readonly', textvariable=self.ps2_format_choice,
+                     values=list(PS2_FORMATS), width=54).pack(anchor='w', pady=(0, 5))
+        self.ps2_name_group = ttk.Frame(form, style='Form.TFrame')
+        ttk.Label(self.ps2_name_group, text='4. PS2 internal profile name (optional)',
+                  style='FormTitle.TLabel').pack(anchor='w', pady=(0, 3))
+        ttk.Entry(self.ps2_name_group, textvariable=self.ps2_profile_name).pack(fill='x', pady=(0, 5))
+        ttk.Label(self.ps2_name_group, text='Blank preserves the source profile name; PSU output requires your exported .psu as a template.',
+                  style='FormHelp.TLabel', wraplength=830).pack(anchor='w')
+
         self.pc_help_group = ttk.Frame(form, style='Form.TFrame')
         ttk.Label(self.pc_help_group, text='3. Install the converted PC save', style='FormTitle.TLabel').pack(anchor='w', pady=(0, 5))
         ttk.Label(self.pc_help_group,
@@ -146,7 +191,7 @@ class CrossSaveApp(tk.Tk):
         advanced = ttk.Frame(wrapper)
         advanced.pack(fill='x', pady=(6, 0))
         self.advanced_checkbox = ttk.Checkbutton(advanced,
-                        text='Advanced: use my own destination-platform template (optional)',
+                        text='Advanced: use my destination-platform template (PSU export requires a .psu template)',
                         variable=self.use_template, command=self._toggle_template)
         self.advanced_checkbox.pack(anchor='w')
         self.template_row = ttk.Frame(advanced)
@@ -182,7 +227,7 @@ class CrossSaveApp(tk.Tk):
         scroll.pack(side='right', fill='y')
         self.log.configure(state='disabled')
         ttk.Label(wrapper,
-                  text='USA conversions tested in-game. Cross-region conversion is experimental until tested on matching regional editions.',
+                  text='PC ↔ USA GameCube tested in-game. PS2 and other GameCube editions are experimental until in-game verified.',
                   style='Subtitle.TLabel', wraplength=880).pack(anchor='w')
 
     def _selected_game_id(self):
@@ -200,62 +245,79 @@ class CrossSaveApp(tk.Tk):
                              activebackground='#ffffff' if active else '#d8e4f1',
                              activeforeground='#13589c', relief='flat')
             self.nav_bars[key].configure(bg='#1963ac' if active else '#bdcbda')
-        self.source_label.configure(text=('1. PC save (extensionless profile file)' if direction == 'pc_gc'
-                                          else '1. GameCube save (.gci)'))
-        self.source_entry.configure(textvariable=self.pc_in if direction == 'pc_gc' else self.gc_in)
-        out = {'gc_pc': self.pc_out, 'pc_gc': self.gc_out, 'gc_gc': self.gc_gc_out}[direction]
-        self.output_entry.configure(textvariable=out)
-        for frame in (self.gc_region_group, self.gc_name_group, self.pc_help_group, self.source_region_label):
+        kind = SOURCE_KINDS[direction]
+        self.source_label.configure(text={'pc': '1. PC save (extensionless profile file)',
+                    'gc': '1. GameCube save (.gci)',
+                    'ps2': '1. PS2 Black Edition save (Vita raw, game file or .psu)'}[kind])
+        self.source_entry.configure(textvariable={'pc': self.pc_in, 'gc': self.gc_in,
+                                                  'ps2': self.ps2_in}[kind])
+        self.output_entry.configure(textvariable=self.output_vars[direction])
+        for frame in (self.gc_region_group, self.gc_name_group, self.ps2_out_group,
+                      self.ps2_name_group, self.pc_help_group, self.source_region_label):
             frame.pack_forget()
-        if direction == 'gc_pc':
+        if direction in ('gc_pc', 'ps2_pc'):
             self.pc_help_group.pack(fill='x')
-            self.source_region_label.pack(anchor='w', pady=(8, 0))
-        else:
-            if direction == 'gc_gc':
-                self.source_region_label.pack(anchor='w', pady=(0, 8))
+        if direction in ('pc_gc', 'gc_gc', 'ps2_gc'):
+            if kind == 'gc':
+                self.source_region_label.pack(anchor='w', pady=(0, 7))
             self.gc_region_group.pack(fill='x')
             self.gc_name_group.pack(fill='x')
-            self.gc_name_entry.configure(textvariable=self.pc_gc_profile_name if direction == 'pc_gc' else self.gc_gc_profile_name)
+            self.gc_name_entry.configure(textvariable={
+                'pc_gc': self.pc_gc_profile_name, 'gc_gc': self.gc_gc_profile_name,
+                'ps2_gc': self.ps2_gc_profile_name}[direction])
             self.gc_name_help.configure(text=(
                 'Blank adds GC (SAVE → SAVEGC). Use a distinct name to avoid collisions.'
-                if direction == 'pc_gc' else
+                if direction in ('pc_gc', 'ps2_gc') else
                 'Blank preserves the profile name when changing regions. For the same edition, enter a different name.'
             ))
+        if direction in ('pc_ps2', 'gc_ps2'):
+            self.ps2_out_group.pack(fill='x')
+            self.ps2_name_group.pack(fill='x')
+        if kind == 'gc' and direction not in ('pc_gc', 'gc_gc'):
+            self.source_region_label.pack(anchor='w', pady=(7, 0))
         if direction == 'gc_gc':
             self.advanced_checkbox.pack_forget()
         else:
             self.advanced_checkbox.pack(anchor='w')
-        self.template_label.configure(text='PC template (extensionless file)' if direction == 'gc_pc'
-                                      else 'GameCube template (.gci)')
+        self.template_label.configure(text={
+            'gc_pc': 'PC template (extensionless file)',
+            'ps2_pc': 'PC template (extensionless file)',
+            'pc_gc': 'GameCube template (.gci)',
+            'ps2_gc': 'GameCube template (.gci)',
+            'pc_ps2': 'PS2 Black Edition template (.psu) for PSU archive output',
+            'gc_ps2': 'PS2 Black Edition template (.psu) for PSU archive output',
+            'gc_gc': 'No template',
+        }[direction])
         self._toggle_template()
-        if direction == 'pc_gc':
-            self.source_region.set('USA is the only GameCube edition verified in-game.')
-        else:
-            self.source_region.set('Source GameCube edition: detected when inspecting a save')
+        self.source_region.set('Source GameCube edition: detected when inspecting a save' if kind == 'gc'
+                               else 'PS2 Black Edition SLUS-21351 (experimental)' if kind == 'ps2'
+                               else 'USA is the only GameCube edition verified in-game.')
 
     def _browse_source(self):
-        if self.direction == 'pc_gc':
-            path = filedialog.askopenfilename(title='Select PC save', filetypes=[('All files', '*.*')])
-            if path:
-                self.pc_in.set(path)
-        else:
-            path = filedialog.askopenfilename(title='Select GameCube save',
-                        filetypes=[('GameCube saves (*.gci)', '*.gci'), ('All files', '*.*')])
-            if path:
-                self.gc_in.set(path)
-                try:
+        kind = SOURCE_KINDS[self.direction]
+        types = {'pc': [('All files', '*.*')],
+                 'gc': [('GameCube saves (*.gci)', '*.gci'), ('All files', '*.*')],
+                 'ps2': [('PS2 saves (*.psu)', '*.psu'), ('All files', '*.*')]}[kind]
+        path = filedialog.askopenfilename(title='Select ' + kind.upper() + ' save', filetypes=types)
+        if path:
+            {'pc': self.pc_in, 'gc': self.gc_in, 'ps2': self.ps2_in}[kind].set(path)
+            try:
+                if kind == 'gc':
                     game_id = gamecube_game_id(Path(path).read_bytes())
                     self.source_region.set(f'Source GameCube edition: {GAMECUBE_REGIONS[game_id]} ({game_id})')
                     if self.direction == 'gc_gc' and self._selected_game_id() == game_id:
                         target = 'GOWP69' if game_id == 'GOWE69' else 'GOWE69'
                         self.region_choice.set(next(k for k, v in REGION_LABELS.items() if v == target))
-                except (OSError, ConversionError):
-                    self.source_region.set('Source edition not recognized. Use Inspect save for details.')
+                elif kind == 'ps2':
+                    fmt = detect_ps2_format(Path(path).read_bytes())
+                    self.source_region.set(f'Source PS2 Black Edition SLUS-21351, {fmt} format')
+            except (OSError, ConversionError):
+                self.source_region.set('Source format not recognized. Use Inspect save for details.')
 
     def _browse_output(self):
         path = filedialog.askdirectory(title='Choose output folder')
         if path:
-            {'gc_pc': self.pc_out, 'pc_gc': self.gc_out, 'gc_gc': self.gc_gc_out}[self.direction].set(path)
+            self.output_vars[self.direction].set(path)
 
     def _toggle_template(self):
         if self.use_template.get() and self.direction != 'gc_gc':
@@ -264,7 +326,10 @@ class CrossSaveApp(tk.Tk):
             self.template_row.pack_forget()
 
     def _browse_template(self):
-        types = [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')] if self.direction == 'pc_gc' else [('All files', '*.*')]
+        types = ([('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')]
+                 if self.direction in ('pc_ps2', 'gc_ps2') else
+                 [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')]
+                 if self.direction in ('pc_gc', 'ps2_gc') else [('All files', '*.*')])
         path = filedialog.askopenfilename(title='Optional destination-platform template', filetypes=types)
         if path:
             self.template_path.set(path)
@@ -276,14 +341,14 @@ class CrossSaveApp(tk.Tk):
         self.log.configure(state='disabled')
 
     def _inputs(self):
-        kind = 'pc' if self.direction == 'pc_gc' else 'gc'
-        source_path = self.pc_in.get().strip() if kind == 'pc' else self.gc_in.get().strip()
+        kind = SOURCE_KINDS[self.direction]
+        source_path = {'pc': self.pc_in, 'gc': self.gc_in, 'ps2': self.ps2_in}[kind].get().strip()
         if not source_path:
             raise ConversionError('Choose the source save first.')
         source = Path(source_path)
         if not source.is_file():
             raise ConversionError(f'Source save not found: {source}')
-        outvar = {'gc_pc': self.pc_out, 'pc_gc': self.gc_out, 'gc_gc': self.gc_gc_out}[self.direction]
+        outvar = self.output_vars[self.direction]
         folder = Path(outvar.get().strip()) if outvar.get().strip() else source.parent
         if not folder.is_dir():
             raise ConversionError(f'Output folder does not exist: {folder}')
@@ -299,8 +364,8 @@ class CrossSaveApp(tk.Tk):
         return source, source.read_bytes(), donor, template, folder, kind
 
     def _summary(self, label, data, kind):
-        info = describe(data, kind)
-        region = f" | {info['game_id']}" if kind == 'gc' else ''
+        info = describe_ps2(data) if kind == 'ps2' else describe(data, kind)
+        region = f" | {info['game_id']}" if kind in ('gc', 'ps2') else ''
         self._log(f"{label}: {info['name']}{region} | ${info['cash']:,} | Blacklist {info['blacklist']} | career {'started' if info['career_started'] else 'not started'} | {info['race_entries']} race records")
         return info
 
@@ -323,10 +388,14 @@ class CrossSaveApp(tk.Tk):
                 game_id = info['game_id']
                 self.source_region.set(f'Source GameCube edition: {GAMECUBE_REGIONS[game_id]} ({game_id})')
             if template is not None:
-                self._summary('Custom template', template, 'pc' if kind == 'gc' else 'gc')
-            elif self.direction == 'gc_gc':
+                template_kind = ('ps2' if self.direction in ('pc_ps2', 'gc_ps2') else
+                                 'gc' if self.direction in ('pc_gc', 'ps2_gc') else 'pc')
+                self._summary('Custom template', template, template_kind)
+            if kind == 'ps2':
+                self._log(f"PS2 source representation: {info['format']}")
+            if self.direction == 'gc_gc':
                 self._log('GameCube -> GameCube preserves the original native gameplay block.')
-            else:
+            elif template is None:
                 self._log('Built-in destination-platform scaffold selected. No donor required.')
             self._log('Save integrity verified. This does not guarantee in-game regional compatibility.')
         except (ConversionError, OSError) as exc:
@@ -364,27 +433,48 @@ class CrossSaveApp(tk.Tk):
             if kind == 'gc':
                 game_id = source_info['game_id']
                 self.source_region.set(f'Source GameCube edition: {GAMECUBE_REGIONS[game_id]} ({game_id})')
+            elif kind == 'ps2':
+                self.source_region.set(f"Source PS2 Black Edition SLUS-21351, {source_info['format']} format")
             if template is not None:
-                self._summary('Custom template', template, 'pc' if kind == 'gc' else 'gc')
-            if self.direction == 'gc_pc':
-                result = gc_to_pc(source, pc_template=template, cash=cash)
+                template_kind = ('ps2' if self.direction in ('pc_ps2', 'gc_ps2') else
+                                 'gc' if self.direction in ('pc_gc', 'ps2_gc') else 'pc')
+                self._summary('Custom template', template, template_kind)
+            if self.direction in ('gc_pc', 'ps2_pc'):
+                result = (gc_to_pc(source, pc_template=template, cash=cash)
+                          if kind == 'gc' else ps2_to_pc(source, pc_template=template, cash=cash))
                 name = profile_name(result, 'pc')
                 target = folder / name / name
                 out_kind = 'pc'
-            elif self.direction == 'pc_gc':
+            elif self.direction in ('pc_gc', 'ps2_gc', 'gc_gc'):
                 game_id = self._selected_game_id()
-                result = pc_to_gc(source, gc_template=template, cash=cash,
-                                  new_name=self.pc_gc_profile_name.get().strip() or None,
-                                  game_id=game_id)
+                if self.direction == 'pc_gc':
+                    result = pc_to_gc(source, gc_template=template, cash=cash,
+                                      new_name=self.pc_gc_profile_name.get().strip() or None,
+                                      game_id=game_id)
+                elif self.direction == 'ps2_gc':
+                    result = ps2_to_gc(source, gc_template=template, cash=cash,
+                                       new_name=self.ps2_gc_profile_name.get().strip() or None,
+                                       game_id=game_id)
+                else:
+                    result = gc_to_gc(source, game_id,
+                                      new_name=self.gc_gc_profile_name.get().strip() or None, cash=cash)
                 name = profile_name(result, 'gc')
                 target = folder / f'{name}-{game_id}-converted.gci'
                 out_kind = 'gc'
             else:
-                game_id = self._selected_game_id()
-                result = gc_to_gc(source, game_id, new_name=self.gc_gc_profile_name.get().strip() or None, cash=cash)
-                name = profile_name(result, 'gc')
-                target = folder / f'{name}-{game_id}-converted.gci'
-                out_kind = 'gc'
+                fmt = PS2_FORMATS[self.ps2_format_choice.get()]
+                name_override = self.ps2_profile_name.get().strip() or None
+                if self.direction == 'pc_ps2':
+                    result = pc_to_ps2(source, cash=cash, new_name=name_override,
+                                       fmt=fmt, psu_template=template)
+                else:
+                    result = gc_to_ps2(source, cash=cash, new_name=name_override,
+                                       fmt=fmt, psu_template=template)
+                name = describe_ps2(result)['name']
+                target = (folder / name if fmt == 'vita' else
+                          folder / (PS2_FOLDER_PREFIX + name) if fmt == 'ps2file' else
+                          folder / (PS2_FOLDER_PREFIX + name + '.psu'))
+                out_kind = 'ps2'
             if target.resolve() == source_path.resolve():
                 raise ConversionError('Output path matches the source save. Choose another output folder.')
             if donor_path is not None and target.resolve() == donor_path.resolve():
@@ -414,19 +504,23 @@ class CrossSaveApp(tk.Tk):
                 if temp_path is not None and temp_path.exists():
                     temp_path.unlink()
             written = target.read_bytes()
-            parse_pc(written) if out_kind == 'pc' else parse_gci(written)
+            (parse_pc(written) if out_kind == 'pc' else
+             parse_gci(written) if out_kind == 'gc' else parse_ps2(written))
             self._last_output = target.parent
             self.open_button.configure(state='normal')
             self._log('SUCCESS: ' + str(target))
             if out_kind == 'gc':
                 self._log(f'GameCube identity: {game_id} / NFSMW{name}.')
+            if out_kind == 'ps2' or kind == 'ps2':
+                self._log('EXPERIMENTAL PS2: checksums valid. In-game compatibility is not yet verified.')
             if ((kind == 'gc' and source_info['game_id'] != 'GOWE69') or
                 (out_kind == 'gc' and game_id != 'GOWE69')):
                 self._log('EXPERIMENTAL REGION: Output is structurally valid but requires in-game testing.')
             self._log('File reread and verified; original source remains unchanged.')
             messagebox.showinfo('Conversion completed',
                 f'Saved and verified:\n{target}\n\nOriginal save unchanged. Keep backups.\n'
-                + ('\nCross-region conversion requires an in-game test.' if self.direction == 'gc_gc' else ''))
+                + ('\nPS2 and region conversions require an in-game test.'
+                   if out_kind == 'ps2' or kind == 'ps2' or self.direction == 'gc_gc' else ''))
         except (ConversionError, OSError) as exc:
             self._log('ERROR: ' + str(exc))
             messagebox.showerror('Conversion failed', str(exc))
