@@ -53,36 +53,48 @@ jobs:
           path: dist/NFSMW-CrossSave-v0.7.5.exe
           if-no-files-found: error
 
-      - name: Publish experimental v0.7.5 Windows release (main only)
+      - name: Publish stable v0.7.5 Windows release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.7.5
-          name: NFSMW CrossSave v0.7.5 - Integrated EF Black Edition Saves
-          prerelease: true
+          name: NFSMW CrossSave v0.7.5 - PC / GameCube to PS Vita
+          prerelease: false
+          make_latest: true
           generate_release_notes: false
           body: |
-            This build extends v0.5, retaining its PC and GameCube conversion and
-            experimental GameCube region-transfer support.
+            Stable v0.7.5: Standalone Windows save converter for Need for Speed:
+            Most Wanted (2005). Windows executable requires no Python or extra
+            donor files.
 
-            PS2 Black Edition (SLUS-21351) support and hotfix:
-            - Integrates the exact user-supplied EF and EF.psu as the built-in templates for all To PS2 modes.
-            - Uses the previously bundled sanitized PC scaffold and Vita-specific AA padding.
-            - Keeps genuine Vita profile templates as optional compatibility inputs.
-            - Allows source inspection without selecting the destination template.
-            - Still uses a genuine destination-format save to preserve platform-only fields.
-            - Rejects layout-invalid PS2-native game files, even if CRC/MD5 pass.
-            - PS2 Vita raw, PS2 native 20CM, and PSU import.
-            - PC <-> PS2 and GameCube <-> PS2 conversions.
-            - Vita raw, PS2 native game file, and PSU output.
-            - Every PS2 output uses original EF / EF.psu internally; external templates optional.
-            - Complete PSU output requires an exported SLUS-21351 PSU for icon metadata.
-            - Existing cash override, backups and verification remain.
+            IN-GAME VERIFIED (user reports):
+            - PC → PS Vita: extensionless profile output loads successfully.
+            - GameCube → PS Vita: extensionless profile output loads successfully.
+            - PC ↔ USA GameCube: career saves tested in-game.
 
-            WARNING: PS2 conversion is structurally verified with real user
-            examples but Integrated EF output uses the v0.7.2 conversion tested in-game. v0.7.0 and v0.7.1 PS2 outputs
-            should be regenerated with this fixed build. Make backups, and
-            only test on copies. GameCube editions outside USA remain
-            experimental. This is a prerelease.
+            FOR PC / GAMECUBE → PS VITA:
+            1. Choose PC → PS2 or GameCube → PS2 in CrossSave.
+            2. Select your PC profile file or GameCube .gci career save.
+            3. Choose "Vita port profile (extensionless)" for output.
+            4. Click "Convert and verify". No external EF template is needed.
+            5. Back up the Vita save folder before copying the new extensionless profile.
+
+            OTHER FORMATS:
+            - Native PS2 Black Edition (SLUS-21351) game-file and PSU archive
+              output/import are supported experimentally, but in-game testing
+              has not confirmed these conversion paths.
+            - Other GameCube regional editions remain experimental.
+            - PS2 / Vita → PC and GameCube conversion paths are experimental.
+
+            Integrated original EF / BASLUS-21351-EF.psu templates are included
+            unchanged with permission, reproducing the verified EF-based Vita
+            serialization path. Advanced allows optional template overrides.
+            Existing cash overrides, integrity checks and output backups remain.
+
+            Versions v0.7.0/v0.7.1 used incorrect PS2 layouts. The v0.7.4
+            neutral donor-free Vita profile was rejected as corrupt in-game;
+            v0.7.5 uses the integrated original EF template instead.
+            Always test new conversions on backed-up saves.
           files: dist/NFSMW-CrossSave-v0.7.5.exe
+          overwrite_files: true
           fail_on_unmatched_files: true

@@ -121,7 +121,7 @@ class CrossSaveApp(tk.Tk):
         self._log('Ready. Original EF and EF.psu integrated, unchanged, for all To PS2 output modes.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
-        self._log('PS2 Black Edition SLUS-21351: corrected native/Vita layout in v0.7.5; in-game verification required.')
+        self._log('PC and GameCube to PS Vita extensionless profiles: confirmed working in-game; native PS2/PSU remain experimental.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -268,7 +268,7 @@ class CrossSaveApp(tk.Tk):
         scroll.pack(side='right', fill='y')
         self.log.configure(state='disabled')
         ttk.Label(wrapper,
-                  text='PC ↔ USA GameCube tested in-game. PS2 and other GameCube editions are experimental until in-game verified.',
+                  text='PC / GameCube to PS Vita (extensionless) and PC ↔ USA GameCube tested in-game. Native PS2/PSU and other GameCube editions remain experimental.',
                   style='Subtitle.TLabel', wraplength=880).pack(anchor='w')
 
     def _selected_game_id(self):
