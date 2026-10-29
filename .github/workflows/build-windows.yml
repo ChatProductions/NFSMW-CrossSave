@@ -31,28 +31,31 @@ jobs:
       - name: Run PS2 Black Edition regression tests
         run: python -m unittest test_ps2 -v
 
+      - name: Run GUI template and validation regression tests
+        run: python -m unittest test_gui -v
+
       - name: Install PyInstaller
         run: python -m pip install --upgrade pyinstaller
 
       - name: Build portable Windows executable
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.2 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
-          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.2.exe")) { throw "EXE not produced" }
+          python -m PyInstaller --noconfirm --onefile --windowed --clean --name NFSMW-CrossSave-v0.7.3 --icon assets/crosssave.ico --add-data "assets;assets" converter_gui.pyw
+          if (!(Test-Path "dist/NFSMW-CrossSave-v0.7.3.exe")) { throw "EXE not produced" }
 
       - name: Upload EXE as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NFSMW-CrossSave-v0.7.2-Windows
-          path: dist/NFSMW-CrossSave-v0.7.2.exe
+          name: NFSMW-CrossSave-v0.7.3-Windows
+          path: dist/NFSMW-CrossSave-v0.7.3.exe
           if-no-files-found: error
 
-      - name: Publish experimental v0.7.2 Windows release (main only)
+      - name: Publish experimental v0.7.3 Windows release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.7.2
-          name: NFSMW CrossSave v0.7.2 - PS2/Vita Layout Correction
+          tag_name: v0.7.3
+          name: NFSMW CrossSave v0.7.3 - Required PS2 Template UX Fix
           prerelease: true
           generate_release_notes: false
           body: |
@@ -60,9 +63,11 @@ jobs:
             experimental GameCube region-transfer support.
 
             PS2 Black Edition (SLUS-21351) support and hotfix:
-            - Fixes PS2-native garage/customization sections being written at PC offsets in v0.7.0/v0.7.1.
-            - Separates Vita raw profile offsets from PS2-native game-file offsets.
-            - Uses a genuine destination-format save template to preserve platform-only fields.
+            - Fixes the v0.7.2 contradiction: Advanced was disabled yet the error said to uncheck it.
+            - Replaces the disabled Advanced checkbox with a clear, required destination-save selector.
+            - Provides format-specific template guidance and validates the selected template before conversion.
+            - Allows source inspection without selecting the destination template.
+            - Still uses a genuine destination-format save to preserve platform-only fields.
             - Rejects layout-invalid PS2-native game files, even if CRC/MD5 pass.
             - PS2 Vita raw, PS2 native 20CM, and PSU import.
             - PC <-> PS2 and GameCube <-> PS2 conversions.
@@ -76,5 +81,5 @@ jobs:
             should be regenerated with this fixed build. Make backups, and
             only test on copies. GameCube editions outside USA remain
             experimental. This is a prerelease.
-          files: dist/NFSMW-CrossSave-v0.7.2.exe
+          files: dist/NFSMW-CrossSave-v0.7.3.exe
           fail_on_unmatched_files: true
