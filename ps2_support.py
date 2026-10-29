@@ -75,10 +75,12 @@ def _padding_locations(data: bytes):
 
 
 def _translate_padding(data: bytearray, *, to_ps2: bool) -> int:
-    source, dest = (0xCD, 0xAA) if to_ps2 else (0xAA, 0xCD)
+    # Sanitized source scaffolds may have zero-filled structural padding.
+    # Normalize every known reserved byte, not only bytes already set CD/AA.
+    dest = 0xAA if to_ps2 else 0xCD
     count = 0
     for p in _padding_locations(data):
-        if data[p] == source:
+        if data[p] != dest:
             data[p] = dest
             count += 1
     return count
