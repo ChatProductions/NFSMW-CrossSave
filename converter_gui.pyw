@@ -121,7 +121,7 @@ class CrossSaveApp(tk.Tk):
         self._log('Ready. Extensionless Vita, PC and GameCube outputs are donor-free by default.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
-        self._log('PS2 Black Edition SLUS-21351: corrected native/Vita layout in v0.7.3; in-game verification required.')
+        self._log('PS2 Black Edition SLUS-21351: corrected native/Vita layout in v0.7.4; in-game verification required.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -146,7 +146,7 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.3', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.4', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
