@@ -433,27 +433,48 @@ class CrossSaveApp(tk.Tk):
             if kind == 'gc':
                 game_id = source_info['game_id']
                 self.source_region.set(f'Source GameCube edition: {GAMECUBE_REGIONS[game_id]} ({game_id})')
+            elif kind == 'ps2':
+                self.source_region.set(f"Source PS2 Black Edition SLUS-21351, {source_info['format']} format")
             if template is not None:
-                self._summary('Custom template', template, 'pc' if kind == 'gc' else 'gc')
-            if self.direction == 'gc_pc':
-                result = gc_to_pc(source, pc_template=template, cash=cash)
+                template_kind = ('ps2' if self.direction in ('pc_ps2', 'gc_ps2') else
+                                 'gc' if self.direction in ('pc_gc', 'ps2_gc') else 'pc')
+                self._summary('Custom template', template, template_kind)
+            if self.direction in ('gc_pc', 'ps2_pc'):
+                result = (gc_to_pc(source, pc_template=template, cash=cash)
+                          if kind == 'gc' else ps2_to_pc(source, pc_template=template, cash=cash))
                 name = profile_name(result, 'pc')
                 target = folder / name / name
                 out_kind = 'pc'
-            elif self.direction == 'pc_gc':
+            elif self.direction in ('pc_gc', 'ps2_gc', 'gc_gc'):
                 game_id = self._selected_game_id()
-                result = pc_to_gc(source, gc_template=template, cash=cash,
-                                  new_name=self.pc_gc_profile_name.get().strip() or None,
-                                  game_id=game_id)
+                if self.direction == 'pc_gc':
+                    result = pc_to_gc(source, gc_template=template, cash=cash,
+                                      new_name=self.pc_gc_profile_name.get().strip() or None,
+                                      game_id=game_id)
+                elif self.direction == 'ps2_gc':
+                    result = ps2_to_gc(source, gc_template=template, cash=cash,
+                                       new_name=self.ps2_gc_profile_name.get().strip() or None,
+                                       game_id=game_id)
+                else:
+                    result = gc_to_gc(source, game_id,
+                                      new_name=self.gc_gc_profile_name.get().strip() or None, cash=cash)
                 name = profile_name(result, 'gc')
                 target = folder / f'{name}-{game_id}-converted.gci'
                 out_kind = 'gc'
             else:
-                game_id = self._selected_game_id()
-                result = gc_to_gc(source, game_id, new_name=self.gc_gc_profile_name.get().strip() or None, cash=cash)
-                name = profile_name(result, 'gc')
-                target = folder / f'{name}-{game_id}-converted.gci'
-                out_kind = 'gc'
+                fmt = PS2_FORMATS[self.ps2_format_choice.get()]
+                name_override = self.ps2_profile_name.get().strip() or None
+                if self.direction == 'pc_ps2':
+                    result = pc_to_ps2(source, cash=cash, new_name=name_override,
+                                       fmt=fmt, psu_template=template)
+                else:
+                    result = gc_to_ps2(source, cash=cash, new_name=name_override,
+                                       fmt=fmt, psu_template=template)
+                name = describe_ps2(result)['name']
+                target = (folder / name if fmt == 'vita' else
+                          folder / (PS2_FOLDER_PREFIX + name) if fmt == 'ps2file' else
+                          folder / (PS2_FOLDER_PREFIX + name + '.psu'))
+                out_kind = 'ps2'
             if target.resolve() == source_path.resolve():
                 raise ConversionError('Output path matches the source save. Choose another output folder.')
             if donor_path is not None and target.resolve() == donor_path.resolve():
@@ -483,19 +504,23 @@ class CrossSaveApp(tk.Tk):
                 if temp_path is not None and temp_path.exists():
                     temp_path.unlink()
             written = target.read_bytes()
-            parse_pc(written) if out_kind == 'pc' else parse_gci(written)
+            (parse_pc(written) if out_kind == 'pc' else
+             parse_gci(written) if out_kind == 'gc' else parse_ps2(written))
             self._last_output = target.parent
             self.open_button.configure(state='normal')
             self._log('SUCCESS: ' + str(target))
             if out_kind == 'gc':
                 self._log(f'GameCube identity: {game_id} / NFSMW{name}.')
+            if out_kind == 'ps2' or kind == 'ps2':
+                self._log('EXPERIMENTAL PS2: checksums valid. In-game compatibility is not yet verified.')
             if ((kind == 'gc' and source_info['game_id'] != 'GOWE69') or
                 (out_kind == 'gc' and game_id != 'GOWE69')):
                 self._log('EXPERIMENTAL REGION: Output is structurally valid but requires in-game testing.')
             self._log('File reread and verified; original source remains unchanged.')
             messagebox.showinfo('Conversion completed',
                 f'Saved and verified:\n{target}\n\nOriginal save unchanged. Keep backups.\n'
-                + ('\nCross-region conversion requires an in-game test.' if self.direction == 'gc_gc' else ''))
+                + ('\nPS2 and region conversions require an in-game test.'
+                   if out_kind == 'ps2' or kind == 'ps2' or self.direction == 'gc_gc' else ''))
         except (ConversionError, OSError) as exc:
             self._log('ERROR: ' + str(exc))
             messagebox.showerror('Conversion failed', str(exc))
