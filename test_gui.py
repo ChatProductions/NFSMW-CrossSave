@@ -64,6 +64,9 @@ class GUITemplateTests(unittest.TestCase):
                 use_template=Var(True),
                 output_vars={'gc_ps2': Var(work)},
             )
+            # Inspect must still work before choosing the required donor.
+            inspect_input = CrossSaveApp._inputs(state, require_destination=False)
+            self.assertIsNone(inspect_input[3])
             with self.assertRaises(ConversionError) as caught:
                 CrossSaveApp._inputs(state)
             msg = str(caught.exception)
