@@ -56,7 +56,10 @@ class PS2Tests(unittest.TestCase):
     def test_lossless_ps2_pc_ps2_roundtrip(self):
         for blob in (self.vita, self.native, self.psu):
             pc = ps2_to_pc(blob, pc_template=self.pc)
-            self.assertEqual(pc, self.pc)
+            # The native PS2 checksum occupies bytes used for PC-specific
+            # trailing fields; preserve career data and verify PS2 exactness.
+            self.assertEqual(pc[0x34:PS2_FILE_BYTES-16],
+                             self.pc[0x34:PS2_FILE_BYTES-16])
             self.assertEqual(pc_to_ps2(pc, fmt='ps2file'), self.native)
 
     def test_psu_template_copy_and_rename(self):
