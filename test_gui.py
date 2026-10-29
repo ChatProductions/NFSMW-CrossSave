@@ -80,19 +80,18 @@ class GUITemplateTests(unittest.TestCase):
             self.assertEqual(with_donor[3], self.vita)
 
             # Native PS2 and PSU still require their console metadata.
-            state.ps2_format_choice = Var('PS2 PSU archive (requires .psu template)')
+            state.ps2_format_choice = Var('PS2 PSU archive (built-in EF.psu)')
             state.use_template = Var(True)
             state.template_path = Var('')
-            with self.assertRaises(ConversionError) as caught:
-                CrossSaveApp._inputs(state)
-            msg = str(caught.exception)
-            self.assertIn('REQUIRED', msg)
-            self.assertIn('Browse destination save', msg)
-            self.assertNotIn('uncheck Advanced', msg)
+            # Engine supplies original EF.psu internally.
+            state.use_template = Var(False)
+            empty_psu = CrossSaveApp._inputs(state)
+            self.assertIsNone(empty_psu[3])
 
             donor = Path(work) / 'EF.psu'
             donor.write_bytes(self.psu)
             state.template_path = Var(str(donor))
+            state.use_template = Var(True)
             output = CrossSaveApp._inputs(state)
             self.assertEqual(output[3], self.psu)
 
@@ -110,7 +109,7 @@ class GUITemplateTests(unittest.TestCase):
             self.assertIsNone(info[3])
 
     def test_distinct_output_format_guidance(self):
-        self.assertIn('Donor-free', ps2_template_requirement('vita'))
+        self.assertIn('integrated', ps2_template_requirement('vita'))
         self.assertIn('game file', ps2_template_requirement('ps2file'))
         self.assertIn('.psu', ps2_template_requirement('psu'))
         with self.assertRaises(ConversionError):

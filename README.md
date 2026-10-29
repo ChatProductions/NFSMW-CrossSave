@@ -1,12 +1,31 @@
-# NFSMW CrossSave v0.7.4
+# NFSMW CrossSave v0.7.5
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
 
 **Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
 
+## v0.7.5: Exact original EF templates integrated
+
+The **original, unmodified `EF` (62,669 bytes)** and **`BASLUS-21351-EF.psu`
+(99,328 bytes)** are embedded in the source repository and Windows EXE, with
+permission from the save owner. Both are verified against their original
+SHA-256 digests on every use. No anonymization, new defaults or synthetic
+records are introduced.
+
+For **PC → PS2** or **GameCube → PS2**, select **Vita port profile
+(extensionless)**, **PS2 game file**, or **PS2 PSU archive**. The correct
+original EF template loads automatically for **all three** output formats.
+The *Advanced* override remains optional, never required.
+
+The Vita profile conversion follows the **v0.7.2 EF-template path that loaded
+in-game**. The native PS2 / PSU variants pass offline validation but still
+require separate game testing. As in v0.7.2, non-transferred history and
+other fields can carry values inherited from EF: this is intentional, per
+request for byte-exact integration rather than a sanitized template.
+
 ## v0.7.4: Donor-free extensionless Vita save output
 
-**GameCube → Vita is donor-free by default.** No EF profile, PS2 game file, .psu archive, or second player's save is required. Version 0.7.4 constructs a neutral Vita-format profile from the existing **sanitized, built-in PC platform scaffold** included with CrossSave and translates PC-only CD padding to Vita's AA padding before transferring your GameCube career. It does not redistribute or embed EF or any personal save.
+**GameCube → Vita is donor-free by default.** No external file is required: v0.7.5 bundles the exact original EF profiles. Version 0.7.4 constructs a neutral Vita-format profile from the existing **sanitized, built-in PC platform scaffold** included with CrossSave and translates PC-only CD padding to Vita's AA padding before transferring your GameCube career. It does not redistribute or embed EF or any personal save.
 
 **How to convert:** Choose **GameCube → PS2**, select your GameCube .gci file, then set **Vita port profile (extensionless)** as the output format. Leave **Optional: use an existing Vita profile as template** unchecked. Click **Convert and verify**. The generated extensionless PROFILE file is intended for Vita's save directory. Back up any existing same-named profile before copying it to the Vita.
 

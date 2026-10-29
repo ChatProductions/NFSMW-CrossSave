@@ -174,16 +174,17 @@ class PS2Tests(unittest.TestCase):
         # Optional genuine templates remain supported; native still needs one.
         self.assertNotEqual(result, bytes(PS2_VITA_BYTES))
 
-    def test_donor_required(self):
+    def test_integrated_template_used_for_all_ps2_output_formats(self):
+        from ps2_support import integrated_template
+        for fmt in ('vita', 'ps2file', 'psu'):
+            with self.subTest(fmt=fmt):
+                out = pc_to_ps2(self.pc, fmt=fmt)
+                expected = pc_to_ps2(self.pc, fmt=fmt,
+                                     psu_template=integrated_template(fmt))
+                self.assertEqual(out, expected)
+                self.assertEqual(describe_ps2(out)['format'], fmt)
         with self.assertRaises(ConversionError):
-            pc_to_ps2(self.pc, fmt='ps2file')
-        with self.assertRaises(ConversionError):
-            pc_to_ps2(self.pc, fmt='psu',
-                      psu_template=self.native_donor)
-        with self.assertRaises(ConversionError):
-            pc_to_ps2(self.pc, fmt='vita',
-                      psu_template=self.native_donor)
-
+            pc_to_ps2(self.pc, fmt='unknown')
 
 if __name__ == '__main__':
     unittest.main()
