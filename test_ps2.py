@@ -23,6 +23,8 @@ def fixture_pc():
     pc[0x5A31:0x5A55] = b'SMOKE'.ljust(36, b'\x00')
     pc[0x44:0x48] = b'Game'
     struct.pack_into('<I', pc, 0x48, 8)
+    # Static first customization part index, present in genuine saves.
+    pc[0x9CCD:0x9CD1] = b'\x84\x0f\x85\x0f'
     for pos in _padding_locations(pc):
         pc[pos] = 0xCD
     pc[0x34:0x44] = hashlib.md5(pc[0x44:0x4034]).digest()
