@@ -20,7 +20,7 @@ from ps2_support import (
     pc_to_ps2, ps2_to_pc, ps2_to_gc, gc_to_ps2,
 )
 
-APP_VERSION = '0.7'
+APP_VERSION = '0.7.1'
 BG = '#f2f5f9'
 INK = '#172a45'
 REGION_LABELS = {f'{label}  |  {game_id}': game_id for game_id, label in GAMECUBE_REGIONS.items()}
@@ -82,7 +82,7 @@ class CrossSaveApp(tk.Tk):
         self._log('Ready. No blank destination-platform saves required.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
-        self._log('PS2 Black Edition SLUS-21351: structurally tested, NOT yet in-game verified.')
+        self._log('PS2 Black Edition SLUS-21351: corrected platform padding in v0.7.1; in-game verification required.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -107,7 +107,7 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.1', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
