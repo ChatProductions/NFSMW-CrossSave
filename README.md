@@ -1,14 +1,25 @@
-# NFSMW CrossSave v0.7.1
+# NFSMW CrossSave v0.7.2
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
 
 **Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
 
-## Critical fix in v0.7.1
+## Critical PS2/Vita serialization fix in v0.7.2
 
-**Do not use v0.7.0 for PS2 Black Edition save output.** It mistakenly carried PC-only CD padding sentinels into PS2 profiles, which use AA. Both MD5 checks passed, but the game could still report the resulting file as corrupt. v0.7.1 corrects these fields in both directions, clears PS2-only tail slots, rejects old incorrectly padded PS2 files, and adds regression coverage. Existing PC/GameCube functions remain available.
+**The source is a GameCube .gci save; the destination is the Vita port's PS2 Black Edition format.** CrossSave v0.7.0 and v0.7.1 could generate structurally checksummed but in-game corrupt PS2 files because the native PS2 garage, customization and pursuit sections are at GameCube-aligned offsets, shifted +0x3C relative to PC. Vita raw profiles use PC-aligned data offsets plus a 20-byte-shorter header. This release explicitly maps these layouts rather than copying them interchangeably.
 
-**Regenerate v0.7.0 PS2 profiles from the original PC or GC source using v0.7.1.** In-game compatibility still needs confirmation.
+**PS2 output now requires an existing genuine destination-format save as its Advanced template.** The app enables the selector automatically. Choose:
+- **Vita port profile:** an extensionless 62,669-byte profile created by the Vita port (e.g. EF)
+- **PS2 game file:** a genuine 62,689-byte BASLUS-21351-* game file or a complete .psu export from Vita 1.3.7
+- **PS2 PSU archive:** a complete .psu export (preserves metadata and icon), not just the raw PS2 file
+
+No private save files or copyrighted PS2 console artwork are included in the application. For the Vita port's 1.3.7 PS2 importer, place native game files or .psu exports under ux0:data/nfsmw/save/ and restart the game. Existing imported profiles under the active save folder may conflict with the new name; back them up before import.
+
+**GameCube → PC and GameCube regional transfers remain in place.** PS2 output remains experimental pending in-game feedback. Never overwrite your only copy of a save.
+
+## Earlier v0.7.1 changes
+
+The preceding release corrected fixed PC/PS2 padding sentinels and checksum handling, but it did not fix the native offset mismatch; v0.7.1 PS2 outputs should be regenerated with v0.7.2.
 
 ## What's new since v0.5
 
@@ -16,13 +27,13 @@ A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion
 - Four new modes in the **same original blue-and-white GUI**: **PS2 → PC**, **PC → PS2**, **PS2 → GameCube**, **GameCube → PS2**.
 - Accepts PS2 Black Edition saves from the latest Vita port (extensionless 62,669-byte profiles such as EF), native PS2 20CM files (62,689 bytes), and exported .psu memory-card archives (containing BASLUS-21351-PROFILE).
 - PS2 output formats: **Vita raw** (PROFILE), **PS2 memory-card game file** (BASLUS-21351-PROFILE), or complete **PSU archive** (.psu).
-- **PSU export requires a user-provided PS2 Black Edition .psu template** to preserve its memory-card icon and metadata. Enable *Advanced*, browse to your existing .psu, and select **PS2 PSU archive** as output. A donor is **not required** for Vita raw or native PS2 game-file output.
+- **All PS2 output requires a user-provided save of the matching destination format.** The Advanced template selector is enabled automatically. PSU export requires a complete PS2 Black Edition .psu template to preserve its memory-card icon and metadata.
 - Automatic source inspection, cash editing, corruption checks, original-file preservation, and timestamped backups remain.
 - No personal save files or copyrighted PS2 icon assets are bundled.
 
 ### Downloads
 
-- **[Experimental v0.7.1 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.1)**: NFSMW-CrossSave-v0.7.1.exe. PS2 padding corruption hotfix; published after the Windows Actions build passes.
+- **[Experimental v0.7.2 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.2)**: NFSMW-CrossSave-v0.7.2.exe. Native/Vita layout correction; published after the Windows Actions build passes.
 - **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
 
 ### PS2 instructions

@@ -20,7 +20,7 @@ from ps2_support import (
     pc_to_ps2, ps2_to_pc, ps2_to_gc, gc_to_ps2,
 )
 
-APP_VERSION = '0.7.1'
+APP_VERSION = '0.7.2'
 BG = '#f2f5f9'
 INK = '#172a45'
 REGION_LABELS = {f'{label}  |  {game_id}': game_id for game_id, label in GAMECUBE_REGIONS.items()}
@@ -82,7 +82,7 @@ class CrossSaveApp(tk.Tk):
         self._log('Ready. No blank destination-platform saves required.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
-        self._log('PS2 Black Edition SLUS-21351: corrected platform padding in v0.7.1; in-game verification required.')
+        self._log('PS2 Black Edition SLUS-21351: corrected native/Vita layout in v0.7.2; in-game verification required.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -107,7 +107,7 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.1', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7.2', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
@@ -177,7 +177,7 @@ class CrossSaveApp(tk.Tk):
         ttk.Label(self.ps2_name_group, text='4. PS2 internal profile name (optional)',
                   style='FormTitle.TLabel').pack(anchor='w', pady=(0, 3))
         ttk.Entry(self.ps2_name_group, textvariable=self.ps2_profile_name).pack(fill='x', pady=(0, 5))
-        ttk.Label(self.ps2_name_group, text='Blank preserves the source profile name; PSU output requires your exported .psu as a template.',
+        ttk.Label(self.ps2_name_group, text='Blank keeps the source name. PS2 output needs an existing genuine destination-format save selected under Advanced.',
                   style='FormHelp.TLabel', wraplength=830).pack(anchor='w')
 
         self.pc_help_group = ttk.Frame(form, style='Form.TFrame')
@@ -191,7 +191,7 @@ class CrossSaveApp(tk.Tk):
         advanced = ttk.Frame(wrapper)
         advanced.pack(fill='x', pady=(6, 0))
         self.advanced_checkbox = ttk.Checkbutton(advanced,
-                        text='Advanced: use my destination-platform template (PSU export requires a .psu template)',
+                        text='Advanced: use genuine destination save as template (required for all PS2 outputs)',
                         variable=self.use_template, command=self._toggle_template)
         self.advanced_checkbox.pack(anchor='w')
         self.template_row = ttk.Frame(advanced)
@@ -284,10 +284,19 @@ class CrossSaveApp(tk.Tk):
             'ps2_pc': 'PC template (extensionless file)',
             'pc_gc': 'GameCube template (.gci)',
             'ps2_gc': 'GameCube template (.gci)',
-            'pc_ps2': 'PS2 Black Edition template (.psu) for PSU archive output',
-            'gc_ps2': 'PS2 Black Edition template (.psu) for PSU archive output',
+            'pc_ps2': 'Required: Vita raw donor for Vita output; PS2 game-file or .psu donor for PS2 output',
+            'gc_ps2': 'Required: Vita raw donor for Vita output; PS2 game-file or .psu donor for PS2 output',
             'gc_gc': 'No template',
         }[direction])
+        # Destination-platform scaffold is mandatory for PS2 output.
+        # Automatically reveal the donor picker instead of allowing the
+        # old v0.7 behavior of generating checksum-valid corrupt files.
+        if direction in ('pc_ps2', 'gc_ps2'):
+            self.use_template.set(True)
+            self.advanced_checkbox.configure(state='disabled')
+        else:
+            self.use_template.set(False)
+            self.advanced_checkbox.configure(state='normal')
         self._toggle_template()
         self.source_region.set('Source GameCube edition: detected when inspecting a save' if kind == 'gc'
                                else 'PS2 Black Edition SLUS-21351 (experimental)' if kind == 'ps2'
@@ -326,11 +335,17 @@ class CrossSaveApp(tk.Tk):
             self.template_row.pack_forget()
 
     def _browse_template(self):
-        types = ([('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')]
-                 if self.direction in ('pc_ps2', 'gc_ps2') else
-                 [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')]
-                 if self.direction in ('pc_gc', 'ps2_gc') else [('All files', '*.*')])
-        path = filedialog.askopenfilename(title='Optional destination-platform template', filetypes=types)
+        if self.direction in ('pc_ps2', 'gc_ps2'):
+            if PS2_FORMATS.get(self.ps2_format_choice.get()) == 'vita':
+                types = [('All files', '*.*')]
+            else:
+                types = [('PS2 PSU (*.psu)', '*.psu'), ('All files', '*.*')]
+        elif self.direction in ('pc_gc', 'ps2_gc'):
+            types = [('GameCube save (*.gci)', '*.gci'), ('All files', '*.*')]
+        else:
+            types = [('All files', '*.*')]
+        path = filedialog.askopenfilename(title='Destination-platform template',
+                                          filetypes=types)
         if path:
             self.template_path.set(path)
 
