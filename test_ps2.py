@@ -13,6 +13,8 @@ from ps2_support import (
 def test_pc_profile():
     pc = bytearray(_built_in_scaffold('pc'))
     pc[0x5a31:0x5a55] = b'SMOKE'.ljust(36, b'\x00')
+    pc[0x44:0x48] = b'Game'
+    struct.pack_into('<I', pc, 0x48, 8)
     pc[0x34:0x44] = hashlib.md5(pc[0x44:0x4034]).digest()
     _repair_header(pc, '<', True)
     return parse_pc(bytes(pc))
