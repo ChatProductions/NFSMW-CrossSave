@@ -1,4 +1,4 @@
-"""NFSMW CrossSave v0.5: PC / GameCube save conversion and experimental region transfer."""
+"""NFSMW CrossSave v0.7: PC, GameCube and experimental PS2 Black Edition support."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,18 +15,39 @@ from converter_core import (
 )
 
 APP_NAME = 'NFSMW CrossSave'
-APP_VERSION = '1.0'
+from ps2_support import (
+    PS2_FOLDER_PREFIX, detect_ps2_format, parse_ps2, describe_ps2,
+    pc_to_ps2, ps2_to_pc, ps2_to_gc, gc_to_ps2,
+)
+
+APP_VERSION = '0.7'
 BG = '#f2f5f9'
 INK = '#172a45'
 REGION_LABELS = {f'{label}  |  {game_id}': game_id for game_id, label in GAMECUBE_REGIONS.items()}
+PS2_FORMATS = {
+    'Vita port profile (extensionless)': 'vita',
+    'PS2 game file (BASLUS-21351-)': 'ps2file',
+    'PS2 PSU archive (requires .psu template)': 'psu',
+}
+DIRECTIONS = (
+    ('gc_pc', 'GameCube → PC'), ('pc_gc', 'PC → GameCube'),
+    ('gc_gc', 'GameCube → GameCube'), ('ps2_pc', 'PS2 → PC'),
+    ('pc_ps2', 'PC → PS2'), ('ps2_gc', 'PS2 → GameCube'),
+    ('gc_ps2', 'GameCube → PS2'),
+)
+SOURCE_KINDS = {
+    'gc_pc': 'gc', 'pc_gc': 'pc', 'gc_gc': 'gc', 'ps2_pc': 'ps2',
+    'pc_ps2': 'pc', 'ps2_gc': 'ps2', 'gc_ps2': 'gc',
+}
+
 
 
 class CrossSaveApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f'{APP_NAME}  |  v{APP_VERSION}')
-        self.geometry('930x840')
-        self.minsize(835, 790)
+        self.geometry('960x920')
+        self.minsize(835, 820)
         self.configure(bg=BG)
         try:
             self.iconbitmap(str(Path(__file__).resolve().parent / 'assets' / 'crosssave.ico'))
@@ -35,11 +56,20 @@ class CrossSaveApp(tk.Tk):
         self._style()
         self.gc_in = tk.StringVar()
         self.pc_in = tk.StringVar()
+        self.ps2_in = tk.StringVar()
         self.pc_out = tk.StringVar()
         self.gc_out = tk.StringVar()
         self.gc_gc_out = tk.StringVar()
+        self.output_vars = {
+            'gc_pc': self.pc_out, 'pc_gc': self.gc_out, 'gc_gc': self.gc_gc_out,
+            'ps2_pc': tk.StringVar(), 'pc_ps2': tk.StringVar(),
+            'ps2_gc': tk.StringVar(), 'gc_ps2': tk.StringVar(),
+        }
         self.pc_gc_profile_name = tk.StringVar()
         self.gc_gc_profile_name = tk.StringVar()
+        self.ps2_gc_profile_name = tk.StringVar()
+        self.ps2_profile_name = tk.StringVar()
+        self.ps2_format_choice = tk.StringVar(value=next(iter(PS2_FORMATS)))
         self.region_choice = tk.StringVar(value=next(iter(REGION_LABELS)))
         self.source_region = tk.StringVar(value='Source GameCube edition: detected when inspecting a save')
         self.use_template = tk.BooleanVar(value=False)
@@ -52,6 +82,7 @@ class CrossSaveApp(tk.Tk):
         self._log('Ready. No blank destination-platform saves required.')
         self._log('USA PC <-> GameCube conversion has passed in-game tests on supplied saves.')
         self._log('European and Japanese edition conversions are experimental pending in-game tests.')
+        self._log('PS2 Black Edition SLUS-21351: structurally tested, NOT yet in-game verified.')
 
     def _style(self):
         style = ttk.Style(self)
@@ -76,22 +107,25 @@ class CrossSaveApp(tk.Tk):
         wrapper = ttk.Frame(self, padding=(24, 12, 24, 8))
         wrapper.pack(fill='both', expand=True)
         ttk.Label(wrapper, text='NFSMW CrossSave', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube  •  v0.5', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
+        ttk.Label(wrapper, text='Need for Speed: Most Wanted (2005)  •  PC ↔ GameCube ↔ PS2 Black Edition  •  v0.7', style='Subtitle.TLabel').pack(anchor='w', pady=(0, 8))
 
         notice = tk.Frame(wrapper, bg='#e8f2fc', highlightbackground='#c9dff5', highlightthickness=1)
         notice.pack(fill='x', pady=(0, 8))
         tk.Label(notice, text='✓  Donor-free conversion', bg='#e8f2fc', fg='#14538c', font=('Segoe UI Semibold', 11), padx=14, pady=5).pack(side='left')
-        tk.Label(notice, text='Five GameCube editions • automatic detection • original files unchanged', bg='#e8f2fc', fg='#355d81', font=('Segoe UI', 10), padx=5).pack(side='left')
+        tk.Label(notice, text='Five GameCube editions • PS2 Black Edition • originals unchanged', bg='#e8f2fc', fg='#355d81', font=('Segoe UI', 10), padx=5).pack(side='left')
 
         nav = tk.Frame(wrapper, bg=BG)
         nav.pack(fill='x')
         self.nav_buttons = {}
         self.nav_bars = {}
-        for key, title in [('gc_pc', 'GameCube → PC'), ('pc_gc', 'PC → GameCube'), ('gc_gc', 'GameCube → GameCube')]:
-            cell = tk.Frame(nav, bg=BG)
+        nav_rows = [tk.Frame(nav, bg=BG), tk.Frame(nav, bg=BG)]
+        for nav_row in nav_rows:
+            nav_row.pack(fill='x')
+        for index, (key, title) in enumerate(DIRECTIONS):
+            cell = tk.Frame(nav_rows[index // 4], bg=BG)
             cell.pack(side='left', fill='y', padx=(0, 4))
             btn = tk.Button(cell, text=title, relief='flat', bd=0,
-                            font=('Segoe UI Semibold', 10), padx=17, pady=9,
+                            font=('Segoe UI Semibold', 9), padx=12, pady=7,
                             cursor='hand2', command=lambda k=key: self._set_direction(k))
             btn.pack(fill='x')
             bar = tk.Frame(cell, height=3)
@@ -100,7 +134,7 @@ class CrossSaveApp(tk.Tk):
             self.nav_bars[key] = bar
 
         panel = tk.Frame(wrapper, bg='white', highlightbackground='#c8d5e3',
-                         highlightthickness=1, height=390)
+                         highlightthickness=1, height=440)
         panel.pack(fill='x')
         panel.pack_propagate(False)
         form = ttk.Frame(panel, padding=(16, 11, 16, 10), style='Form.TFrame')
@@ -135,6 +169,17 @@ class CrossSaveApp(tk.Tk):
         self.gc_name_help = ttk.Label(self.gc_name_group, text='', style='FormHelp.TLabel', wraplength=830)
         self.gc_name_help.pack(anchor='w')
 
+        self.ps2_out_group = ttk.Frame(form, style='Form.TFrame')
+        ttk.Label(self.ps2_out_group, text='3. PS2 output format', style='FormTitle.TLabel').pack(anchor='w', pady=(0, 3))
+        ttk.Combobox(self.ps2_out_group, state='readonly', textvariable=self.ps2_format_choice,
+                     values=list(PS2_FORMATS), width=54).pack(anchor='w', pady=(0, 5))
+        self.ps2_name_group = ttk.Frame(form, style='Form.TFrame')
+        ttk.Label(self.ps2_name_group, text='4. PS2 internal profile name (optional)',
+                  style='FormTitle.TLabel').pack(anchor='w', pady=(0, 3))
+        ttk.Entry(self.ps2_name_group, textvariable=self.ps2_profile_name).pack(fill='x', pady=(0, 5))
+        ttk.Label(self.ps2_name_group, text='Blank preserves the source profile name; PSU output requires your exported .psu as a template.',
+                  style='FormHelp.TLabel', wraplength=830).pack(anchor='w')
+
         self.pc_help_group = ttk.Frame(form, style='Form.TFrame')
         ttk.Label(self.pc_help_group, text='3. Install the converted PC save', style='FormTitle.TLabel').pack(anchor='w', pady=(0, 5))
         ttk.Label(self.pc_help_group,
@@ -146,7 +191,7 @@ class CrossSaveApp(tk.Tk):
         advanced = ttk.Frame(wrapper)
         advanced.pack(fill='x', pady=(6, 0))
         self.advanced_checkbox = ttk.Checkbutton(advanced,
-                        text='Advanced: use my own destination-platform template (optional)',
+                        text='Advanced: use my destination-platform template (PSU export requires a .psu template)',
                         variable=self.use_template, command=self._toggle_template)
         self.advanced_checkbox.pack(anchor='w')
         self.template_row = ttk.Frame(advanced)
@@ -182,7 +227,7 @@ class CrossSaveApp(tk.Tk):
         scroll.pack(side='right', fill='y')
         self.log.configure(state='disabled')
         ttk.Label(wrapper,
-                  text='USA conversions tested in-game. Cross-region conversion is experimental until tested on matching regional editions.',
+                  text='PC ↔ USA GameCube tested in-game. PS2 and other GameCube editions are experimental until in-game verified.',
                   style='Subtitle.TLabel', wraplength=880).pack(anchor='w')
 
     def _selected_game_id(self):
