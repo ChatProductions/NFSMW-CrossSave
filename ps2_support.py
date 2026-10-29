@@ -108,8 +108,8 @@ def _neutral_vita_scaffold() -> bytearray:
     raw[0x20:] = source[0x34:PS2_FILE_BYTES]
     _require(raw[0x5BC5-20:0x5BC9-20] == b'\x78\x56\x34\x12',
              'Built-in platform scaffold lacks the Vita car database.')
-    _require(raw[0x9CCD-20:0x9CD1-20] == b'\x84\x0f\x85\x0f',
-             'Built-in platform scaffold lacks default customizations.')
+    _require(raw[0x6B65-20:0x6B69-20] == b'\xDA\x13\xDB\x13',
+             'Built-in platform scaffold lacks the static car customizations.')
     # The profile MD5 is recomputed after inserting the real career.
     raw[-16:] = bytes(16)
     return raw
