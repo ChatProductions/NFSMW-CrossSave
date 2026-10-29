@@ -154,9 +154,27 @@ class PS2Tests(unittest.TestCase):
             with self.assertRaises(ConversionError):
                 parse_ps2(bytes(damaged))
 
+    def test_donor_free_vita_scaffold(self):
+        # No EF, saved profiles or personal data are used here.
+        result = pc_to_ps2(self.pc, fmt='vita')
+        self.assertEqual(len(result), PS2_VITA_BYTES)
+        self.assertEqual(describe_ps2(result)['name'], 'SMOKE')
+        self.assertEqual(describe_ps2(result)['format'], 'vita')
+        # All transferable career bytes must match the optional-template result.
+        for pc_off, native_off, size, kind in REGIONS:
+            beg = pc_off - 20
+            self.assertEqual(
+                result[beg:beg+size], self.vita[beg:beg+size],
+                f'Donor-free career field changed: {kind} at {hex(pc_off)}')
+        self.assertEqual(result[0x5BC5-20:0x5BC9-20],
+                         b'\x78\x56\x34\x12')
+        self.assertEqual(result[0x9CCD-20:0x9CD1-20],
+                         b'\x84\x0f\x85\x0f')
+        self.assertEqual(ps2_to_pc(result, pc_template=self.pc), self.pc)
+        # Optional genuine templates remain supported; native still needs one.
+        self.assertNotEqual(result, bytes(PS2_VITA_BYTES))
+
     def test_donor_required(self):
-        with self.assertRaises(ConversionError):
-            pc_to_ps2(self.pc, fmt='vita')
         with self.assertRaises(ConversionError):
             pc_to_ps2(self.pc, fmt='ps2file')
         with self.assertRaises(ConversionError):

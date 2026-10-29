@@ -1,8 +1,20 @@
-# NFSMW CrossSave v0.7.3
+# NFSMW CrossSave v0.7.4
 
 A Windows GUI utility for **Need for Speed: Most Wanted (2005)** save conversion between PC, GameCube, and experimental PS2 Black Edition (SLUS-21351).
 
 **Current compatibility:** PC ↔ USA GameCube remains the only in-game-tested conversion. PS2 Black Edition conversion and other GameCube editions are **experimental**, validated structurally and by offline round-trip tests, not in-game. Back up your original saves.
+
+## v0.7.4: Donor-free extensionless Vita save output
+
+**GameCube → Vita is donor-free by default.** No EF profile, PS2 game file, .psu archive, or second player's save is required. Version 0.7.4 constructs a neutral Vita-format profile from the existing **sanitized, built-in PC platform scaffold** included with CrossSave and translates PC-only CD padding to Vita's AA padding before transferring your GameCube career. It does not redistribute or embed EF or any personal save.
+
+**How to convert:** Choose **GameCube → PS2**, select your GameCube .gci file, then set **Vita port profile (extensionless)** as the output format. Leave **Optional: use an existing Vita profile as template** unchecked. Click **Convert and verify**. The generated extensionless PROFILE file is intended for Vita's save directory. Back up any existing same-named profile before copying it to the Vita.
+
+**Optional compatibility comparison:** You may still check the optional Vita template control and select an original extensionless port profile, such as EF. This preserves the v0.7.2 path that was confirmed to work in-game by a user, for testing only.
+
+**Native PS2 game file and full .psu output:** These still require genuine metadata templates. The donor-free improvement specifically targets the Vita's extensionless raw profile, not every PS2 serialization format.
+
+**Verification status:** Source fields, default game car/customization records, structural lengths, save checksums and round-trips are tested. **The new donor-free Vita output still requires an in-game test.** v0.7.2 using EF was confirmed to load successfully; that does not automatically establish that v0.7.4 without EF will load.
 
 ## v0.7.3: PS2 destination-save selector fix
 
@@ -12,13 +24,13 @@ v0.7.2 required a destination save template for PS2 output, but incorrectly disp
 
 **GameCube → PS2 importer:** select **PS2 PSU archive**, and choose a genuine exported BASLUS-21351-*.psu as the destination save. The output .psu can be imported by the Vita port 1.3.7 from ux0:data/nfsmw/save/. Do not use a generated v0.7.0/0.7.1 PS2 file as the template.
 
-**Important:** The genuine destination template requirement remains because unknown platform-only fields cannot yet be safely synthesized. The PS2/Vita conversion has passed structural regression tests but remains unverified in-game.
+**Historical note for v0.7.3:** This requirement applied at that time. Version 0.7.4 adds donor-free Vita raw output; native PS2/PSU formats still require templates.
 
 ## Critical PS2/Vita serialization fix in v0.7.2
 
 **The source is a GameCube .gci save; the destination is the Vita port's PS2 Black Edition format.** CrossSave v0.7.0 and v0.7.1 could generate structurally checksummed but in-game corrupt PS2 files because the native PS2 garage, customization and pursuit sections are at GameCube-aligned offsets, shifted +0x3C relative to PC. Vita raw profiles use PC-aligned data offsets plus a 20-byte-shorter header. This release explicitly maps these layouts rather than copying them interchangeably.
 
-**PS2 output now requires an existing genuine destination-format save as its Advanced template.** The app enables the selector automatically. Choose:
+**Historical note for v0.7.2 (superseded for Vita raw by v0.7.4):** That release required a genuine destination template. Native PS2/PSU output still does; Vita raw now uses a built-in neutral scaffold. The former template choices were:
 - **Vita port profile:** an extensionless 62,669-byte profile created by the Vita port (e.g. EF)
 - **PS2 game file:** a genuine 62,689-byte BASLUS-21351-* game file or a complete .psu export from Vita 1.3.7
 - **PS2 PSU archive:** a complete .psu export (preserves metadata and icon), not just the raw PS2 file
@@ -37,13 +49,13 @@ The preceding release corrected fixed PC/PS2 padding sentinels and checksum hand
 - Four new modes in the **same original blue-and-white GUI**: **PS2 → PC**, **PC → PS2**, **PS2 → GameCube**, **GameCube → PS2**.
 - Accepts PS2 Black Edition saves from the latest Vita port (extensionless 62,669-byte profiles such as EF), native PS2 20CM files (62,689 bytes), and exported .psu memory-card archives (containing BASLUS-21351-PROFILE).
 - PS2 output formats: **Vita raw** (PROFILE), **PS2 memory-card game file** (BASLUS-21351-PROFILE), or complete **PSU archive** (.psu).
-- **All PS2 output requires a user-provided save of the matching destination format.** The Advanced template selector is enabled automatically. PSU export requires a complete PS2 Black Edition .psu template to preserve its memory-card icon and metadata.
+- **Vita extensionless output is donor-free by default (v0.7.4).** Optional Vita profile template is available for comparison; PS2-native and PSU output still require user-supplied destination metadata. PSU export requires a complete .psu to preserve icon metadata.
 - Automatic source inspection, cash editing, corruption checks, original-file preservation, and timestamped backups remain.
 - No personal save files or copyrighted PS2 icon assets are bundled.
 
 ### Downloads
 
-- **[Experimental v0.7.3 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.3)**: NFSMW-CrossSave-v0.7.3.exe. Native/Vita layout correction; published after the Windows Actions build passes.
+- **[Experimental v0.7.4 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.7.4)**: NFSMW-CrossSave-v0.7.4.exe. Native/Vita layout correction; published after the Windows Actions build passes.
 - **[In-game-tested v0.5.0 Windows EXE](https://github.com/ChatProductions/NFSMW-CrossSave/releases/tag/v0.5.0)**: NFSMW-CrossSave-v0.5.exe (PC ↔ USA GameCube).
 
 ### PS2 instructions

@@ -50,7 +50,7 @@ class GUITemplateTests(unittest.TestCase):
                 with self.assertRaisesRegex(ConversionError, 'Wrong destination template'):
                     verify_ps2_destination_template(wrong_blob, output_type)
 
-    def test_missing_template_message_is_actionable(self):
+    def test_donor_free_vita_source_and_required_psu(self):
         with tempfile.TemporaryDirectory() as work:
             source = Path(work) / 'career.gci'
             source.write_bytes(b'file-size-not-relevant-to-ui-path-tests')
@@ -61,28 +61,40 @@ class GUITemplateTests(unittest.TestCase):
                 ps2_in=Var(),
                 ps2_format_choice=Var('Vita port profile (extensionless)'),
                 template_path=Var(''),
-                use_template=Var(True),
+                use_template=Var(False),
                 output_vars={'gc_ps2': Var(work)},
             )
-            # Inspect must still work before choosing the required donor.
-            inspect_input = CrossSaveApp._inputs(state, require_destination=False)
-            self.assertIsNone(inspect_input[3])
+            # No donor file is required for the requested extensionless Vita.
+            chosen = CrossSaveApp._inputs(state)
+            self.assertEqual(chosen[0], source)
+            self.assertIsNone(chosen[2])
+            self.assertIsNone(chosen[3])
+            self.assertEqual(chosen[-1], 'gc')
+
+            # Advanced mode remains optional for Vita compatibility testing.
+            donor = Path(work) / 'EF'
+            donor.write_bytes(self.vita)
+            state.use_template = Var(True)
+            state.template_path = Var(str(donor))
+            with_donor = CrossSaveApp._inputs(state)
+            self.assertEqual(with_donor[3], self.vita)
+
+            # Native PS2 and PSU still require their console metadata.
+            state.ps2_format_choice = Var('PS2 PSU archive (requires .psu template)')
+            state.use_template = Var(True)
+            state.template_path = Var('')
             with self.assertRaises(ConversionError) as caught:
                 CrossSaveApp._inputs(state)
             msg = str(caught.exception)
             self.assertIn('REQUIRED', msg)
             self.assertIn('Browse destination save', msg)
-            self.assertIn('extensionless', msg)
             self.assertNotIn('uncheck Advanced', msg)
 
-            destination = Path(work) / 'EF'
-            destination.write_bytes(self.vita)
-            state.template_path = Var(str(destination))
-            source_file, source_bytes, donor_path, donor_bytes, folder, source_kind = CrossSaveApp._inputs(state)
-            self.assertEqual(source_file, source)
-            self.assertEqual(donor_bytes, self.vita)
-            self.assertEqual(donor_path, destination)
-            self.assertEqual(source_kind, 'gc')
+            donor = Path(work) / 'EF.psu'
+            donor.write_bytes(self.psu)
+            state.template_path = Var(str(donor))
+            output = CrossSaveApp._inputs(state)
+            self.assertEqual(output[3], self.psu)
 
     def test_pc_gc_existing_donor_free_mode_unchanged(self):
         with tempfile.TemporaryDirectory() as work:
@@ -98,7 +110,7 @@ class GUITemplateTests(unittest.TestCase):
             self.assertIsNone(info[3])
 
     def test_distinct_output_format_guidance(self):
-        self.assertIn('Vita-port profile', ps2_template_requirement('vita'))
+        self.assertIn('Donor-free', ps2_template_requirement('vita'))
         self.assertIn('game file', ps2_template_requirement('ps2file'))
         self.assertIn('.psu', ps2_template_requirement('psu'))
         with self.assertRaises(ConversionError):
